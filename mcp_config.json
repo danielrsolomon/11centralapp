@@ -1,0 +1,22 @@
+{
+  "project_name": "E11EVEN Central Platform",
+  "frontend": {
+    "framework": "Next.js",
+    "ui_library": "Tailwind CSS",
+    "state_management": ["React Context", "React Query"],
+    "form_handling": "React Hook Form + Zod"
+  },
+  "backend": {
+    "api_framework": "Next.js API routes",
+    "auth_method": "JWT (refresh token rotation)",
+    "database": "Supabase (PostgreSQL)",
+    "middleware": ["Authentication", "Validation", "Logging"]
+  },
+  "database": {
+    "primary": "PostgreSQL",
+    "host": "Supabase",
+    "schemas": ["users", "roles", "permissions", "departments", "venues", "courses", "lessons", "modules", "quizzes", "user_progress", "tip_pools", "schedules", "achievements"]
+  },
+  "integrations": ["Supabase", "OpenAI", "Vimeo", "YouTube"],
+  "latest_update": "2025-03-10"
+}
