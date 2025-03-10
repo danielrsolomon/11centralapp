@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 import { ChevronRight, Book, BookOpen, Award, Clock, BarChart3, GraduationCap, CheckCircle } from 'lucide-react'
+import supabase from '@/lib/supabase-optimized'
+import logger from '@/lib/logger'
+import usePerformanceMonitoring from '@/lib/hooks/usePerformanceMonitoring'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 export default function UniversityDashboard() {
   const [loading, setLoading] = useState(true)
@@ -14,22 +17,33 @@ export default function UniversityDashboard() {
     total: 0
   })
   
-  const supabase = createClient()
+  // Performance monitoring
+  const perf = usePerformanceMonitoring('UniversityDashboard')
   
   useEffect(() => {
     async function fetchUserData() {
       setLoading(true)
       
+      // Start timing data fetch
+      perf.startTiming('userData')
+      
       try {
+        logger.debug('Fetching user data for University Dashboard')
         const { data: { user } } = await supabase.auth.getUser()
         
         if (user) {
           // Set user name
           if (user.user_metadata?.first_name) {
             setUserName(user.user_metadata.first_name)
+            logger.debug('User name found in metadata', { 
+              component: 'UniversityDashboard',
+              context: { firstName: user.user_metadata.first_name }
+            })
           }
           
           // For demo purposes - in a real implementation we'd fetch actual course data
+          // In production, use the optimized client like:
+          // const { data } = await supabase.from('user_program_progress').select('*').eq('user_id', user.id).execute()
           setCourseProgress({
             completed: 4,
             inProgress: 2,
@@ -37,14 +51,16 @@ export default function UniversityDashboard() {
           })
         }
       } catch (error) {
-        console.error('Error fetching user data:', error)
+        logger.error('Error fetching user data for University Dashboard', error as Error)
       } finally {
         setLoading(false)
+        // End timing data fetch
+        perf.endTiming('userData')
       }
     }
     
     fetchUserData()
-  }, [supabase])
+  }, [perf])
   
   if (loading) {
     return (

@@ -1,8 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { 
   Users, 
   Building, 
@@ -13,131 +11,120 @@ import {
   Calendar,
   ShieldAlert
 } from 'lucide-react'
+import AuthGuard from '@/components/auth/AuthGuard'
+import ErrorBoundary from '@/components/ErrorBoundary'
+import optimizedSupabase from '@/lib/supabase-optimized'
+import logger from '@/lib/logger'
+import usePerformanceMonitoring from '@/lib/hooks/usePerformanceMonitoring'
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('users')
-  const [loading, setLoading] = useState(true)
-  const [isAdmin, setIsAdmin] = useState(false)
-  const router = useRouter()
-  const supabase = createClient()
-
-  // Check if user is admin
-  useEffect(() => {
-    async function checkAdminStatus() {
-      setLoading(true)
-      
-      try {
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser()
-        
-        if (!user) {
-          router.push('/auth/login')
-          return
-        }
-        
-        // In development, always treat as admin
-        // In production, this would check against the database
-        console.log('Admin check - setting isAdmin to true for testing purposes')
-
-        setIsAdmin(true)
-      } catch (error) {
-        console.error('Error checking admin status:', error)
-        // Still set as admin in dev mode even if there's an error
-        setIsAdmin(true)
-      } finally {
-        setLoading(false)
-      }
-    }
-    
-    checkAdminStatus()
-  }, [router, supabase])
+  
+  // Performance monitoring
+  const perf = usePerformanceMonitoring('AdminPage')
 
   const tabs = [
     {
       id: 'users',
       label: 'User Management',
       icon: <Users className="w-5 h-5 mr-2" />,
-      description: 'Manage users, roles, and permissions. Add or edit departments and assign them to venues.'
+      description: 'Manage users, roles, permissions, and departments'
     },
     {
       id: 'venues',
       label: 'Venue Management',
       icon: <Building className="w-5 h-5 mr-2" />,
-      description: 'Configure venues, locations, floor plans, and venue-specific settings.'
+      description: 'Configure venues, locations, floor plans, and venue-specific settings'
     },
     {
       id: 'system',
       label: 'System Settings',
       icon: <SettingsIcon className="w-5 h-5 mr-2" />,
-      description: 'Global application settings, branding, and integration configurations.'
+      description: 'Configure application branding, notifications, and integrations'
     },
     {
       id: 'security',
       label: 'Security & Compliance',
       icon: <ShieldAlert className="w-5 h-5 mr-2" />,
-      description: 'Security settings, audit logs, and compliance tools.'
+      description: 'Access security settings, audit logs, and compliance tools'
+    },
+    {
+      id: 'analytics',
+      label: 'Analytics',
+      icon: <BarChart className="w-5 h-5 mr-2" />,
+      description: 'View usage reports, metrics, and business analytics'
+    },
+    {
+      id: 'schedules',
+      label: 'Global Schedules',
+      icon: <Calendar className="w-5 h-5 mr-2" />,
+      description: 'Configure organization-wide schedules and calendar settings'
+    },
+    {
+      id: 'documents',
+      label: 'Document Library',
+      icon: <FileText className="w-5 h-5 mr-2" />,
+      description: 'Manage global document templates, policies, and procedures'
     }
   ]
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#AE9773]"></div>
-      </div>
-    )
-  }
-
-  if (!isAdmin) {
-    return null // Router will handle redirect
-  }
-
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Admin Settings</h1>
-        <div className="bg-amber-100 border border-amber-300 text-amber-800 px-4 py-2 rounded-md flex items-center">
-          <AlertTriangle className="h-5 w-5 mr-2" />
-          <span>Administrator Mode</span>
+    <AuthGuard requiredRoles={['admin']}>
+      <ErrorBoundary>
+        <div className="container mx-auto py-6">
+          <h1 className="text-2xl font-bold text-gray-800 mb-6">Admin Settings</h1>
+          
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-md mb-6 flex items-start">
+            <AlertTriangle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium">Admin Area</p>
+              <p className="text-sm">
+                Changes made here will affect the entire application. Proceed with caution.
+              </p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tabs.map((tab) => (
+              <div 
+                key={tab.id}
+                className={`bg-white rounded-lg shadow border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer ${
+                  activeTab === tab.id ? 'ring-2 ring-[#AE9773] ring-opacity-50' : ''
+                }`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <div className="flex items-center p-4 border-b border-gray-100">
+                  <div className={`p-2 rounded-full ${activeTab === tab.id ? 'bg-[#AE9773]/20 text-[#AE9773]' : 'bg-gray-100 text-gray-600'}`}>
+                    {tab.icon}
+                  </div>
+                  <h3 className="ml-3 font-medium text-gray-800">{tab.label}</h3>
+                </div>
+                <div className="p-4">
+                  <p className="text-gray-600 text-sm">{tab.description}</p>
+                  <div className="mt-4 flex justify-end">
+                    <button 
+                      className={`px-4 py-1.5 text-sm rounded ${
+                        activeTab === tab.id 
+                          ? 'bg-[#AE9773] text-white' 
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {activeTab === tab.id ? 'Manage' : 'Select'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Future enhancement: Content for each tab */}
+          <div className="mt-6 bg-white rounded-lg shadow border border-gray-200 p-6">
+            <p className="text-center text-gray-500">
+              Select a module above to manage its settings. Additional admin functionality will be added in future updates.
+            </p>
+          </div>
         </div>
-      </div>
-      
-      {/* Tabs - Horizontal layout for all screen sizes */}
-      <div className="overflow-x-auto mb-4 border-b border-gray-200">
-        <div className="flex whitespace-nowrap">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center px-6 py-3 transition-colors border-b-2 ${
-                activeTab === tab.id 
-                ? 'border-[#AE9773] text-[#AE9773] font-medium' 
-                : 'border-transparent text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">
-            {tabs.find(tab => tab.id === activeTab)?.label}
-          </h2>
-          <p className="text-gray-600">
-            {tabs.find(tab => tab.id === activeTab)?.description}
-          </p>
-        </div>
-        
-        {/* Placeholder for actual admin functionality */}
-        <div className="bg-gray-50 border border-gray-200 rounded-md p-8 text-center">
-          <p className="text-gray-700 mb-2">This section is under development</p>
-          <p className="text-gray-500 text-sm">The {tabs.find(tab => tab.id === activeTab)?.label.toLowerCase()} functionality will be implemented soon.</p>
-        </div>
-      </div>
-    </div>
+      </ErrorBoundary>
+    </AuthGuard>
   )
 } 

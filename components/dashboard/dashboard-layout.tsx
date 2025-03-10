@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase'
 import { 
   Menu, 
+  X, 
   LogOut, 
   LayoutDashboard, 
   BookOpen, 
@@ -24,8 +25,20 @@ import {
   Repeat,
   Clock,
   Map,
-  MessageSquare
+  MessageSquare,
+  Cog,
+  BookOpen as BookOpenIcon,
+  GraduationCap as GraduationCapIcon,
+  Trophy as TrophyIcon,
+  ListChecks,
+  CalendarDays,
+  Clock as ClockIcon,
+  Building2,
+  Users,
+  ShieldCheck,
+  CalendarRange
 } from 'lucide-react'
+import Script from 'next/script'
 
 // Import the logo directly to ensure it's statically analyzed
 import goldLogo from '../../public/gold-logo.png'
@@ -38,9 +51,23 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isVenueDropdownOpen, setIsVenueDropdownOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [expandedSections, setExpandedSections] = useState<string[]>(['university', 'schedule'])
+  const [showDebugAdmin, setShowDebugAdmin] = useState(false)
   const router = useRouter()
   const supabase = createClient()
   const pathname = usePathname()
+  
+  // Safe check for client-side only code
+  useEffect(() => {
+    // Check for debug_showAdmin only on client-side
+    if (typeof window !== 'undefined') {
+      try {
+        const debugValue = localStorage.getItem('debug_showAdmin') === 'true';
+        setShowDebugAdmin(debugValue);
+      } catch (e) {
+        console.error('Error accessing localStorage:', e);
+      }
+    }
+  }, []);
   
   // Sample venues - in a real app, these would come from the API/database
   const venues = [
@@ -52,44 +79,58 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     'Gold Rush Miami'
   ]
   
-  // Fetch user data when component mounts
-  useEffect(() => {
-    async function getUserData() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user?.user_metadata?.first_name) {
-        setUserName(user.user_metadata.first_name)
+  // Enhanced user data fetch
+  async function getUserData() {
+    try {
+      // Log for debugging
+      console.log('Fetching user data');
+      
+      // Now fetch from server
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.warn('No authenticated user found in API call');
+        return;
       }
-      if (user?.user_metadata?.last_name) {
-        setUserLastName(user.user_metadata.last_name)
+
+      // Special case for Daniel's email - force admin status
+      if (user.email === 'danielrsolomon@gmail.com') {
+        console.log('Setting admin status for Daniel (from API)');
+        setIsAdmin(true);
+      }
+
+      // Set user name immediately with fallback to email username
+      if (user.email) {
+        const emailUsername = user.email.split('@')[0];
+        setUserName(emailUsername);
+        console.log('Set username from email:', emailUsername);
       }
       
-      // Check if user has admin role
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', user?.id)
-          .single()
-          
-        console.log('Admin check query result:', { data, error, userId: user?.id })
-        
-        if (data && data.role === 'admin') {
-          setIsAdmin(true)
-          console.log('User is an admin')
-        } else {
-          console.log('User is not an admin:', data?.role)
-          // Force admin role for testing (remove in production)
-          setIsAdmin(true)
-          console.log('Admin role forced for testing')
+      // Try to get the profile data
+      let { data: profile, error } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, is_admin')
+        .eq('id', user.id)
+        .single();
+      
+      console.log('Profile data:', profile, 'Error:', error);
+      
+      // If we got profile data, update with better name
+      if (!error && profile) {
+        setUserName(profile.first_name || user.email?.split('@')[0] || 'User');
+        if (profile.is_admin === true) {
+          console.log('User is admin (from profile)');
+          setIsAdmin(true);
         }
-        
-        // Automatically expand sections that have content management for admins
-        setExpandedSections(['university', 'schedule'])
-      } catch (error) {
-        console.error('Error checking admin status:', error)
+        console.log('Set username from profile data:', profile.first_name);
       }
+    } catch (error) {
+      console.error('Error in getUserData:', error);
     }
-    
+  }
+  
+  // Fetch user data when component mounts
+  useEffect(() => {
     getUserData()
   }, [supabase.auth])
 
@@ -145,211 +186,238 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     return childPaths.some(path => pathname?.startsWith(path))
   }
 
+  // Main navigation items
+  const navigationItems = [
+    {
+      name: 'Dashboard',
+      href: '/dashboard',
+      icon: <LayoutDashboard className="h-5 w-5" />
+    },
+    {
+      name: '11Central Connect',
+      href: '/dashboard/connect',
+      icon: <MessageSquare className="h-5 w-5" />
+    },
+    {
+      name: 'E11EVEN University',
+      href: '/dashboard/university',
+      icon: <GraduationCap className="h-5 w-5" />,
+      submenu: true,
+      section: 'university'
+    },
+    {
+      name: 'Scheduling Hub',
+      href: '/dashboard/schedule',
+      icon: <CalendarRange className="h-5 w-5" />,
+      submenu: true,
+      section: 'schedule'
+    },
+    {
+      name: 'Gratuity',
+      href: '/dashboard/gratuity',
+      icon: <DollarSign className="h-5 w-5" />
+    },
+    {
+      name: 'Guardian Hub',
+      href: '/dashboard/guardian',
+      icon: <ShieldCheck className="h-5 w-5" />
+    }
+  ]
+  
+  // Bottom navigation items
+  const bottomNavItems = [
+    {
+      name: 'User Profile',
+      href: '/dashboard/profile',
+      icon: <UserCircle className="h-5 w-5" />
+    },
+    {
+      name: 'Admin Settings',
+      href: '/dashboard/admin',
+      icon: <Settings className="h-5 w-5" />,
+      adminOnly: true
+    }
+  ]
+
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex min-h-screen bg-gray-100">
+      {/* Debug script */}
+      <Script src="/dashboard-debug.js" strategy="afterInteractive" />
+      
       {/* Gold line at the top of the page - even thinner */}
       <div className="absolute top-0 left-0 right-0 h-[1px] bg-[#AE9773] z-50"></div>
       
+      {/* Mobile menu button */}
+      <button
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        className="fixed left-4 top-4 z-40 rounded-md bg-[#AE9773] p-2 text-white md:hidden"
+      >
+        {isSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+      </button>
+
       {/* Sidebar */}
       <div
-        className={`${
-          isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-0'
-        } fixed lg:static inset-y-0 left-0 z-40 bg-black transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:w-64 border-r border-[#AE9773]`}
+        className={`fixed inset-y-0 left-0 z-30 w-64 transform overflow-y-auto bg-[#1e1e1e] transition duration-300 ease-in-out md:relative md:translate-x-0 ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
-        <div className="flex items-center justify-center h-16 px-4 border-b border-[#AE9773]">
-          <Link href="/dashboard" className="flex items-center justify-center">
-            <Image
+        {/* Main sidebar content */}
+        <div className="h-full flex flex-col">
+          {/* Logo */}
+          <div className="p-4 flex items-center justify-center">
+            <Image 
               src={goldLogo}
-              alt="E11EVEN Central"
-              width={195}
-              height={52}
-              className="max-h-14 w-auto"
+              alt="E11EVEN Miami Logo"
+              width={120}
+              height={48}
               priority
             />
-          </Link>
-          <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="absolute right-4 lg:hidden text-white hover:text-gray-300"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-        </div>
-        <nav className="mt-5 px-2">
-          <div className="space-y-1">
-            <NavItem href="/dashboard" icon={<LayoutDashboard className="mr-3 h-5 w-5" />}>
-              Dashboard
-            </NavItem>
-            
-            <NavItem href="/dashboard/connect" icon={<MessageSquare className="mr-3 h-5 w-5" />}>
-              11Central Connect
-            </NavItem>
-            
-            {/* E11EVEN University with dropdown */}
-            <div className="space-y-1">
-              <button
-                onClick={() => toggleSection('university')}
-                className={`w-full flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md 
-                  ${isActive('/dashboard/university') || isChildActive(['/dashboard/university/']) 
-                    ? 'bg-gray-900 text-[#AE9773]' 
-                    : 'text-gray-300 hover:bg-gray-900 hover:text-white'}`}
-              >
-                <div className="flex items-center">
-                  <BookOpen className="mr-3 h-5 w-5" />
-                  <span>E11EVEN University</span>
-                </div>
-                <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded('university') ? 'rotate-90' : ''}`} />
-              </button>
-              
-              {isExpanded('university') && (
-                <div className="ml-6 space-y-1">
-                  <NavItem href="/dashboard/university" icon={<Grid className="h-4 w-4 mr-3" />} isSubmenu>
-                    Dashboard
-                  </NavItem>
-                  <NavItem href="/dashboard/university/training" icon={<GraduationCap className="h-4 w-4 mr-3" />} isSubmenu>
-                    Training Portal
-                  </NavItem>
-                  <NavItem href="/dashboard/university/achievements" icon={<Trophy className="h-4 w-4 mr-3" />} isSubmenu>
-                    Achievements
-                  </NavItem>
-                  {isAdmin && (
-                    <NavItem href="/dashboard/university/content" icon={<FileText className="h-4 w-4 mr-3" />} isSubmenu>
-                      Content Management
-                    </NavItem>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Scheduling Hub with dropdown */}
-            <div className="space-y-1">
-              <button
-                onClick={() => toggleSection('schedule')}
-                className={`w-full flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md 
-                  ${isActive('/dashboard/schedule') || isChildActive(['/dashboard/schedule/']) 
-                    ? 'bg-gray-900 text-[#AE9773]' 
-                    : 'text-gray-300 hover:bg-gray-900 hover:text-white'}`}
-              >
-                <div className="flex items-center">
-                  <Calendar className="mr-3 h-5 w-5" />
-                  <span>Scheduling Hub</span>
-                </div>
-                <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded('schedule') ? 'rotate-90' : ''}`} />
-              </button>
-              
-              {isExpanded('schedule') && (
-                <div className="ml-6 space-y-1">
-                  <NavItem href="/dashboard/schedule" icon={<Calendar className="h-4 w-4 mr-3" />} isSubmenu>
-                    Schedules
-                  </NavItem>
-                  <NavItem href="/dashboard/schedule/swaps" icon={<Repeat className="h-4 w-4 mr-3" />} isSubmenu>
-                    Schedule Swaps
-                  </NavItem>
-                  <NavItem href="/dashboard/schedule/time-off" icon={<Clock className="h-4 w-4 mr-3" />} isSubmenu>
-                    Time Off Requests
-                  </NavItem>
-                  <NavItem href="/dashboard/schedule/floorplans" icon={<Map className="h-4 w-4 mr-3" />} isSubmenu>
-                    Floor Plans
-                  </NavItem>
-                  {isAdmin && (
-                    <NavItem href="/dashboard/schedule/content" icon={<FileText className="h-4 w-4 mr-3" />} isSubmenu>
-                      Content Management
-                    </NavItem>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <NavItem href="/dashboard/gratuity" icon={<DollarSign className="mr-3 h-5 w-5" />}>
-              Gratuity
-            </NavItem>
-            
-            {/* Guardian Hub (renamed from Security) */}
-            <NavItem href="/dashboard/guardian" icon={<Shield className="mr-3 h-5 w-5" />}>
-              Guardian Hub
-            </NavItem>
           </div>
           
-          {/* User Profile Navigation - Added at bottom with separation */}
-          <div className="pt-6 mt-6 border-t border-gray-800">
-            <NavItem href="/dashboard/profile" icon={<UserCircle className="mr-3 h-5 w-5" />}>
-              User Profile
-            </NavItem>
-            
-            {/* Admin Settings - Only visible to admins */}
-            {isAdmin && (
-              <NavItem href="/dashboard/admin" icon={<Settings className="mr-3 h-5 w-5" />}>
-                Admin Settings
-              </NavItem>
-            )}
-          </div>
-        </nav>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-black border-b border-[#AE9773] h-16">
-          <div className="flex items-center justify-between h-full px-4">
-            {/* Left side - Venue Selector */}
-            <div className="flex items-center">
-              <button
-                onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden text-white hover:text-gray-300 mr-3"
-              >
-                <Menu className="h-6 w-6" />
-              </button>
-              
-              <div className="relative">
-                <button 
-                  onClick={() => setIsVenueDropdownOpen(!isVenueDropdownOpen)}
-                  className="flex items-center justify-between space-x-2 text-[#AE9773] bg-black hover:bg-gray-900 px-4 py-1.5 rounded border border-[#AE9773] transition-colors min-w-[240px]"
-                >
-                  <span className="font-medium truncate">{selectedVenue}</span>
-                  <ChevronDown className="h-4 w-4 flex-shrink-0 ml-2" />
-                </button>
+          {/* Main Navigation */}
+          <nav className="flex-1 px-2 py-4">
+            {navigationItems.map((item) => (
+              <div key={item.name} className="mb-2">
+                {item.submenu ? (
+                  <button
+                    onClick={() => toggleSection(item.section!)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md
+                      ${isExpanded(item.section!) ? 'bg-gray-900 text-[#AE9773]' : 'text-gray-300 hover:bg-gray-900 hover:text-white'}
+                    `}
+                  >
+                    {item.icon}
+                    <span className="flex-1 text-left">{item.name}</span>
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${isExpanded(item.section!) ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                ) : (
+                  <NavItem href={item.href} icon={item.icon}>
+                    {item.name}
+                  </NavItem>
+                )}
                 
-                {isVenueDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-72 bg-gray-900 border border-[#AE9773] rounded shadow-lg z-50">
-                    <ul>
-                      {venues.map((venue) => (
-                        <li key={venue}>
-                          <button
-                            onClick={() => handleVenueSelect(venue)}
-                            className={`w-full text-left px-4 py-2 hover:bg-gray-800 ${
-                              venue === selectedVenue ? 'bg-gray-800 text-[#AE9773]' : 'text-white'
-                            }`}
-                          >
-                            {venue}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                {/* Render submenu if expanded */}
+                {item.section === 'university' && isExpanded('university') && (
+                  <div className="ml-2 mt-1 space-y-1">
+                    <NavItem href="/dashboard/university" icon={<Grid className="h-5 w-5" />} isSubmenu>
+                      Dashboard
+                    </NavItem>
+                    
+                    <NavItem href="/dashboard/university/training" icon={<GraduationCap className="h-5 w-5" />} isSubmenu>
+                      Training Portal
+                    </NavItem>
+                    
+                    <NavItem href="/dashboard/university/achievements" icon={<Trophy className="h-5 w-5" />} isSubmenu>
+                      Achievements
+                    </NavItem>
+                    
+                    {/* Show admin-only Content Management section */}
+                    {(isAdmin || showDebugAdmin) && (
+                      <NavItem href="/dashboard/university/content" icon={<FileText className="h-5 w-5" />} isSubmenu>
+                        Content Management
+                      </NavItem>
+                    )}
+                  </div>
+                )}
+                
+                {item.section === 'schedule' && isExpanded('schedule') && (
+                  <div className="ml-2 mt-1 space-y-1">
+                    <NavItem href="/dashboard/schedule" icon={<CalendarDays className="h-5 w-5" />} isSubmenu>
+                      Schedules
+                    </NavItem>
+                    
+                    <NavItem href="/dashboard/schedule/swaps" icon={<ListChecks className="h-5 w-5" />} isSubmenu>
+                      Schedule Swaps
+                    </NavItem>
+                    
+                    <NavItem href="/dashboard/schedule/time-off" icon={<ClockIcon className="h-5 w-5" />} isSubmenu>
+                      Time Off Requests
+                    </NavItem>
+                    
+                    <NavItem href="/dashboard/schedule/floorplans" icon={<Building2 className="h-5 w-5" />} isSubmenu>
+                      Floor Plans
+                    </NavItem>
+                    
+                    {isAdmin && (
+                      <NavItem href="/dashboard/schedule/content" icon={<FileText className="h-5 w-5" />} isSubmenu>
+                        Content Management
+                      </NavItem>
+                    )}
                   </div>
                 )}
               </div>
-            </div>
-            
-            {/* Right side - User info and sign out */}
-            <div className="flex items-center space-x-4 ml-auto">
-              <div className="text-[#AE9773] text-sm md:text-base">
-                Welcome Home, <span className="font-semibold">{userName}</span>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-[#AE9773] flex items-center justify-center text-white font-medium">
-                {getInitials()}
-              </div>
+            ))}
+          </nav>
+          
+          {/* Bottom Navigation */}
+          <div className="border-t border-gray-800 pt-4 pb-6 px-2">
+            {bottomNavItems.map((item) => (
+              (!item.adminOnly || isAdmin) && (
+                <NavItem key={item.name} href={item.href} icon={item.icon}>
+                  {item.name}
+                </NavItem>
+              )
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="bg-[#1E1E1E] text-white shadow-md border-b border-[#2A2A2A] h-16 flex items-center px-4 justify-between">
+          <div className="flex items-center">
+            <div className="relative">
               <button
-                onClick={handleSignOut}
-                className="flex items-center bg-[#AE9773]/10 hover:bg-[#AE9773]/20 px-3 py-1.5 rounded border border-[#AE9773] transition-colors"
+                onClick={() => setIsVenueDropdownOpen(!isVenueDropdownOpen)}
+                className="flex items-center space-x-2 text-white px-4 py-2 rounded-md focus:outline-none border border-[#333] bg-[#1E1E1E]"
               >
-                <LogOut className="h-4 w-4 text-[#AE9773] mr-2" />
-                <span className="text-[#AE9773] text-sm font-medium">Sign Out</span>
+                <span>{selectedVenue}</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${isVenueDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
+              
+              {isVenueDropdownOpen && (
+                <div className="absolute mt-2 z-10 bg-[#1E1E1E] border border-[#333] shadow-lg rounded-md py-1 w-full">
+                  {venues.map((venue) => (
+                    <button
+                      key={venue}
+                      onClick={() => handleVenueSelect(venue)}
+                      className={`block w-full text-left px-4 py-2 hover:bg-[#2A2A2A] ${
+                        venue === selectedVenue ? 'text-[#AE9773]' : 'text-white'
+                      }`}
+                    >
+                      {venue}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
+          
+          <div className="flex items-center">
+            <div className="text-right mr-4">
+              <div className="text-sm font-medium">Welcome Home, {userName}</div>
+            </div>
+            
+            <div className="w-8 h-8 bg-[#AE9773] text-white rounded-full flex items-center justify-center">
+              {getInitials()}
+            </div>
+            
+            <button
+              onClick={handleSignOut}
+              className="ml-4 p-2 rounded hover:bg-[#2A2A2A] text-white"
+            >
+              <div className="flex items-center">
+                <LogOut className="h-5 w-5" />
+                <span className="ml-1">Sign Out</span>
+              </div>
+            </button>
+          </div>
         </header>
-
+        
         {/* Main content */}
-        <main className="flex-1 overflow-auto bg-white p-4">
+        <main className="flex-1 overflow-auto p-4 bg-gray-100">
           {children}
         </main>
       </div>
@@ -368,23 +436,22 @@ function NavItem({
   children: React.ReactNode;
   isSubmenu?: boolean;
 }) {
+  const router = useRouter()
   const pathname = usePathname()
   const isActive = pathname === href
-
+  
   return (
     <Link 
-      href={href} 
-      className={`flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-        isSubmenu ? (isActive 
-          ? 'text-white' 
-          : 'text-gray-300 hover:text-white')
-        : (isActive 
+      href={href}
+      className={`flex items-center px-3 py-2 text-sm font-medium rounded-md
+        ${isActive 
           ? 'bg-gray-900 text-[#AE9773]' 
           : 'text-gray-300 hover:bg-gray-900 hover:text-white'
-        )
-      }`}
+        }
+        ${isSubmenu ? 'pl-6 text-sm' : ''}
+      `}
     >
-      {icon}
+      <span className="mr-3">{icon}</span>
       {children}
     </Link>
   )

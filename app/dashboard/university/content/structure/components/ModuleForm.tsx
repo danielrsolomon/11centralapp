@@ -207,7 +207,7 @@ export default function ModuleForm({ lessonId, onCancel, onSuccess, existingModu
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#AE9773] focus:border-[#AE9773]"
+              className="w-full p-2 bg-white border border-gray-300 rounded-md focus:ring-[#AE9773] focus:border-[#AE9773] text-gray-900"
               required
             />
           </div>
@@ -219,7 +219,7 @@ export default function ModuleForm({ lessonId, onCancel, onSuccess, existingModu
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#AE9773] focus:border-[#AE9773] h-20"
+              className="w-full p-2 bg-white border border-gray-300 rounded-md focus:ring-[#AE9773] focus:border-[#AE9773] h-20 text-gray-900"
             />
           </div>
           
@@ -230,7 +230,7 @@ export default function ModuleForm({ lessonId, onCancel, onSuccess, existingModu
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#AE9773] focus:border-[#AE9773] h-40"
+              className="w-full p-2 bg-white border border-gray-300 rounded-md focus:ring-[#AE9773] focus:border-[#AE9773] h-40 text-gray-900"
             />
           </div>
           
@@ -240,11 +240,11 @@ export default function ModuleForm({ lessonId, onCancel, onSuccess, existingModu
               Video URL
             </label>
             <input
-              type="text"
+              type="url"
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="https://example.com/video.mp4"
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#AE9773] focus:border-[#AE9773]"
+              className="w-full p-2 bg-white border border-gray-300 rounded-md focus:ring-[#AE9773] focus:border-[#AE9773] text-gray-900"
+              placeholder="https://example.com/video"
             />
           </div>
           
@@ -253,11 +253,11 @@ export default function ModuleForm({ lessonId, onCancel, onSuccess, existingModu
               type="checkbox"
               id="videoRequired"
               checked={videoRequired}
-              onChange={(e) => setVideoRequired(e.target.checked)}
-              className="mr-2 h-4 w-4 text-[#AE9773] focus:ring-[#AE9773]"
+              onChange={() => setVideoRequired(!videoRequired)}
+              className="h-4 w-4 text-[#AE9773] focus:ring-[#AE9773] border-gray-300 rounded cursor-pointer"
             />
-            <label htmlFor="videoRequired" className="text-sm font-medium text-gray-700">
-              Video required to complete module
+            <label htmlFor="videoRequired" className="ml-2 block text-sm text-gray-700 cursor-pointer">
+              Video is required to complete module
             </label>
           </div>
           
@@ -268,8 +268,8 @@ export default function ModuleForm({ lessonId, onCancel, onSuccess, existingModu
                 type="checkbox"
                 id="hasQuiz"
                 checked={hasQuiz}
-                onChange={(e) => setHasQuiz(e.target.checked)}
-                className="mr-2 h-4 w-4 text-[#AE9773] focus:ring-[#AE9773]"
+                onChange={() => setHasQuiz(!hasQuiz)}
+                className="h-4 w-4 text-[#AE9773] focus:ring-[#AE9773] border-gray-300 rounded cursor-pointer"
               />
               <label htmlFor="hasQuiz" className="text-sm font-medium text-gray-700">
                 Include quiz for this module
@@ -277,18 +277,28 @@ export default function ModuleForm({ lessonId, onCancel, onSuccess, existingModu
             </div>
             
             {hasQuiz && (
-              <div className="space-y-6 pl-4 border-l-2 border-[#AE9773]">
+              <div className="mt-3 space-y-4 bg-gray-50 p-4 rounded-md">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-medium text-gray-800">Quiz Questions</h3>
+                  <button
+                    type="button"
+                    onClick={addQuestion}
+                    className="text-sm px-3 py-1 bg-[#AE9773] text-white rounded hover:bg-[#8E795D] flex items-center"
+                  >
+                    <Plus className="h-3 w-3 mr-1" /> Add Question
+                  </button>
+                </div>
+                
                 {quizQuestions.map((question, questionIndex) => (
-                  <div key={questionIndex} className="p-4 border border-gray-200 rounded-md bg-gray-50 relative">
+                  <div key={questionIndex} className="bg-white p-4 rounded-md border border-gray-300 relative">
                     <button
                       type="button"
                       onClick={() => removeQuestion(questionIndex)}
-                      className="absolute right-2 top-2 text-gray-500 hover:text-red-500"
+                      className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
+                      aria-label="Remove question"
                     >
-                      <X className="h-5 w-5" />
+                      <Trash2 className="h-4 w-4" />
                     </button>
-                    
-                    <h3 className="font-medium mb-2">Question {questionIndex + 1}</h3>
                     
                     <div className="mb-3">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -296,12 +306,8 @@ export default function ModuleForm({ lessonId, onCancel, onSuccess, existingModu
                       </label>
                       <select
                         value={question.question_type}
-                        onChange={(e) => updateQuestion(
-                          questionIndex, 
-                          'question_type', 
-                          e.target.value as 'multiple_choice' | 'true_false'
-                        )}
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#AE9773] focus:border-[#AE9773]"
+                        onChange={(e) => updateQuestion(questionIndex, 'question_type', e.target.value)}
+                        className="w-full p-2 bg-white border border-gray-300 rounded-md focus:ring-[#AE9773] focus:border-[#AE9773] text-gray-900"
                       >
                         <option value="multiple_choice">Multiple Choice</option>
                         <option value="true_false">True/False</option>
@@ -310,108 +316,111 @@ export default function ModuleForm({ lessonId, onCancel, onSuccess, existingModu
                     
                     <div className="mb-3">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Question Text
+                        Question
                       </label>
                       <input
                         type="text"
                         value={question.question_text}
                         onChange={(e) => updateQuestion(questionIndex, 'question_text', e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#AE9773] focus:border-[#AE9773]"
-                        placeholder="Enter your question here"
+                        className="w-full p-2 bg-white border border-gray-300 rounded-md focus:ring-[#AE9773] focus:border-[#AE9773] text-gray-900"
+                        placeholder="Enter your question"
                       />
                     </div>
                     
-                    {question.question_type === 'multiple_choice' ? (
-                      /* Multiple Choice Options */
+                    {question.question_type === 'multiple_choice' && (
                       <div className="mb-3">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Options
+                          Answer Options
                         </label>
-                        {question.options.map((option, optionIndex) => (
+                        {(question.options as string[]).map((option, optionIndex) => (
                           <div key={optionIndex} className="flex items-center mb-2">
                             <input
                               type="radio"
-                              name={`correct_${questionIndex}`}
+                              id={`q${questionIndex}_opt${optionIndex}`}
+                              name={`question${questionIndex}_correct`}
                               checked={question.correct_answer === option}
                               onChange={() => updateQuestion(questionIndex, 'correct_answer', option)}
-                              className="mr-2 h-4 w-4 text-[#AE9773] focus:ring-[#AE9773]"
+                              className="h-4 w-4 text-[#AE9773] focus:ring-[#AE9773] border-gray-300 cursor-pointer"
+                              disabled={!option.trim()}
                             />
                             <input
                               type="text"
                               value={option}
-                              onChange={(e) => updateQuestion(
-                                questionIndex, 
-                                'options', 
-                                {index: optionIndex, value: e.target.value}
-                              )}
+                              onChange={(e) => updateQuestion(questionIndex, 'options', { index: optionIndex, value: e.target.value })}
+                              className="ml-2 flex-1 p-2 bg-white border border-gray-300 rounded-md focus:ring-[#AE9773] focus:border-[#AE9773] text-gray-900"
                               placeholder={`Option ${optionIndex + 1}`}
-                              className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-[#AE9773] focus:border-[#AE9773]"
                             />
                           </div>
                         ))}
                       </div>
-                    ) : (
-                      /* True/False Options */
+                    )}
+                    
+                    {question.question_type === 'true_false' && (
                       <div className="mb-3">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Answer
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Correct Answer
                         </label>
                         <div className="flex space-x-4">
                           <div className="flex items-center">
                             <input
                               type="radio"
-                              id={`true_${questionIndex}`}
-                              name={`tf_${questionIndex}`}
+                              id={`q${questionIndex}_true`}
+                              name={`question${questionIndex}_correct_tf`}
                               checked={question.correct_answer === 'True'}
                               onChange={() => updateQuestion(questionIndex, 'correct_answer', 'True')}
-                              className="mr-2 h-4 w-4 text-[#AE9773] focus:ring-[#AE9773]"
+                              className="h-4 w-4 text-[#AE9773] focus:ring-[#AE9773] border-gray-300 cursor-pointer"
                             />
-                            <label htmlFor={`true_${questionIndex}`}>True</label>
+                            <label htmlFor={`q${questionIndex}_true`} className="ml-2 text-sm text-gray-900 cursor-pointer">
+                              True
+                            </label>
                           </div>
                           <div className="flex items-center">
                             <input
                               type="radio"
-                              id={`false_${questionIndex}`}
-                              name={`tf_${questionIndex}`}
+                              id={`q${questionIndex}_false`}
+                              name={`question${questionIndex}_correct_tf`}
                               checked={question.correct_answer === 'False'}
                               onChange={() => updateQuestion(questionIndex, 'correct_answer', 'False')}
-                              className="mr-2 h-4 w-4 text-[#AE9773] focus:ring-[#AE9773]"
+                              className="h-4 w-4 text-[#AE9773] focus:ring-[#AE9773] border-gray-300 cursor-pointer"
                             />
-                            <label htmlFor={`false_${questionIndex}`}>False</label>
+                            <label htmlFor={`q${questionIndex}_false`} className="ml-2 text-sm text-gray-900 cursor-pointer">
+                              False
+                            </label>
                           </div>
                         </div>
                       </div>
                     )}
                   </div>
                 ))}
-                
-                <button
-                  type="button"
-                  onClick={addQuestion}
-                  className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Question
-                </button>
               </div>
             )}
           </div>
           
-          <div className="flex justify-end space-x-2 border-t border-gray-200 pt-4 mt-4">
+          {/* Form Submit Buttons */}
+          <div className="mt-6 flex justify-end space-x-3">
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-              disabled={submitting}
+              className="px-4 py-2 border border-gray-300 bg-white text-gray-800 font-medium rounded-md hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-[#AE9773] text-white rounded-md hover:bg-[#8E795D]"
               disabled={submitting}
+              className="px-4 py-2 bg-[#AE9773] text-white font-medium rounded-md hover:bg-[#8E795D] flex items-center"
             >
-              {submitting ? 'Saving...' : existingModule ? 'Update Module' : 'Create Module'}
+              {submitting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Saving...
+                </>
+              ) : (
+                existingModule ? 'Update Module' : 'Create Module'
+              )}
             </button>
           </div>
         </div>

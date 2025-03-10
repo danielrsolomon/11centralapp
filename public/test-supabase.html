@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supabase Connection Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f7f7f7;
+      color: #333;
+    }
+    .container {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-top: 0;
+    }
+    button {
+      background: #555;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #333;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f3f3f3;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .success {
+      color: green;
+      font-weight: bold;
+    }
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Supabase Connection Test</h1>
+    <p>This tool tests connectivity to your Supabase project using direct fetch requests.</p>
+    
+    <div>
+      <button id="testConnectivity">Test Basic Connectivity</button>
+      <button id="testAuth">Test Auth Endpoint</button>
+      <div id="result" class="result">Click a button to start a test...</div>
+    </div>
+  </div>
+
+  <script>
+    // Supabase project info from env variables (injected at build time)
+    const SUPABASE_URL = 'https://vzykvoyanfijphtvmgtu.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6eWt2b3lhbmZpanBodHZtZ3R1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEzMzIxMjIsImV4cCI6MjA1NjkwODEyMn0.vpyw6VZw26QXIkfLRwJVXeiKawx-foVn0W7E7T0YhjM';
+
+    const resultEl = document.getElementById('result');
+    
+    // Log messages to the result div
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const el = document.createElement('div');
+      el.className = type;
+      el.textContent = `[${timestamp}] ${message}`;
+      resultEl.appendChild(el);
+      resultEl.scrollTop = resultEl.scrollHeight;
+    }
+    
+    // Log objects
+    function logObject(obj, title) {
+      const timestamp = new Date().toLocaleTimeString();
+      const el = document.createElement('div');
+      el.innerHTML = `[${timestamp}] ${title}:<br><pre>${JSON.stringify(obj, null, 2)}</pre>`;
+      resultEl.appendChild(el);
+      resultEl.scrollTop = resultEl.scrollHeight;
+    }
+    
+    // Clear the results
+    function clearResults() {
+      resultEl.innerHTML = '';
+    }
+    
+    // Test basic connectivity
+    document.getElementById('testConnectivity').addEventListener('click', async () => {
+      clearResults();
+      log('Testing connectivity to Supabase...');
+      
+      const startTime = performance.now();
+      
+      try {
+        const response = await fetch(SUPABASE_URL, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          },
+          signal: AbortSignal.timeout(5000)  // 5 second timeout
+        });
+        
+        const duration = Math.round(performance.now() - startTime);
+        log(`Response received in ${duration}ms`, 'success');
+        logObject({
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          headers: Object.fromEntries([...response.headers])
+        }, 'Response details');
+      } catch (error) {
+        const duration = Math.round(performance.now() - startTime);
+        log(`Error after ${duration}ms: ${error.message}`, 'error');
+        logObject({
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        }, 'Error details');
+      }
+    });
+    
+    // Test auth endpoint
+    document.getElementById('testAuth').addEventListener('click', async () => {
+      clearResults();
+      log('Testing Supabase auth endpoint...');
+      
+      const startTime = performance.now();
+      
+      try {
+        const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          },
+          body: JSON.stringify({
+            email: 'test@example.com',  // Use a test email (will fail but tests connectivity)
+            password: 'testpassword123'
+          }),
+          signal: AbortSignal.timeout(5000)  // 5 second timeout
+        });
+        
+        const duration = Math.round(performance.now() - startTime);
+        log(`Response received in ${duration}ms`, response.ok ? 'success' : 'error');
+        
+        try {
+          const data = await response.json();
+          logObject(data, 'Response data');
+        } catch (jsonError) {
+          log('Could not parse response as JSON', 'error');
+        }
+        
+        logObject({
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok
+        }, 'Response details');
+      } catch (error) {
+        const duration = Math.round(performance.now() - startTime);
+        log(`Error after ${duration}ms: ${error.message}`, 'error');
+        logObject({
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        }, 'Error details');
+      }
+    });
+  </script>
+</body>
+</html> 
