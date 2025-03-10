@@ -1,39 +1,193 @@
 {
   "project_name": "E11EVEN Central Platform",
+  "project_description": "Centralized learning and communication platform for E11EVEN",
   "frontend": {
-    "framework": "Next.js",
+    "framework": "Next.js 15+",
     "ui_library": "Tailwind CSS",
     "state_management": ["React Context", "React Query"],
-    "form_handling": "React Hook Form + Zod"
+    "form_handling": "React Hook Form + Zod",
+    "components": {
+      "ui": ["Custom UI components"],
+      "auth": ["Login", "Registration", "Password Reset"],
+      "dashboard": ["Dashboard components"],
+      "profile": ["Profile management components"],
+      "program": ["Learning program components"],
+      "connect": ["Connect messaging components"],
+      "error_handling": ["ErrorBoundary", "ClientErrorBoundary"]
+    },
+    "routing": "App Router (Next.js 15+)",
+    "styling": {
+      "frameworks": ["Tailwind CSS", "tailwindcss-animate"],
+      "theming": "next-themes"
+    }
   },
   "backend": {
     "api_framework": "Next.js API routes",
+    "api_routes": {
+      "auth": ["Login", "Logout", "Refresh", "Password Reset"],
+      "dev_actions": ["Development utilities"],
+      "diagnostics": ["System health checks"],
+      "env_check": ["Environment validation"]
+    },
+    "server_components": "Next.js Server Components",
     "auth_method": "JWT (refresh token rotation)",
     "database": "Supabase (PostgreSQL)",
-    "middleware": ["Authentication", "Validation", "Logging"]
+    "middleware": ["Authentication", "Validation", "Logging"],
+    "error_handling": {
+      "strategy": "Centralized error handling",
+      "logging": "Structured logging with environment-aware levels"
+    }
   },
   "database": {
     "primary": "PostgreSQL",
     "host": "Supabase",
-    "schemas": [
-      "users",
-      "roles",
-      "permissions",
-      "departments",
-      "user_roles",
-      "venues",
-      "courses",
-      "lessons",
-      "modules",
-      "programs",
-      "quiz_questions",
-      "user_quiz_attempts",
-      "user_program_progress",
-      "user_progress",
-      "user_preferences",
-      "quiz_answers"
+    "tables": {
+      "core": [
+        {"name": "users", "description": "User accounts", "foreign_keys": ["auth.users"]},
+        {"name": "user_preferences", "description": "User app preferences", "foreign_keys": ["users"]},
+        {"name": "roles", "description": "Available system roles", "foreign_keys": []},
+        {"name": "permissions", "description": "Permission definitions", "foreign_keys": []},
+        {"name": "user_roles", "description": "User role assignments", "foreign_keys": ["users", "roles", "departments", "venues"]},
+        {"name": "role_permissions", "description": "Assignment of permissions to roles", "foreign_keys": ["roles", "permissions"]}
+      ],
+      "learning": [
+        {"name": "departments", "description": "Organizational departments", "foreign_keys": []},
+        {"name": "programs", "description": "Training programs", "foreign_keys": ["departments"]},
+        {"name": "courses", "description": "Courses within programs", "foreign_keys": ["programs"]},
+        {"name": "modules", "description": "Course modules", "foreign_keys": ["courses"]},
+        {"name": "lessons", "description": "Module lessons", "foreign_keys": ["modules"]},
+        {"name": "quiz_questions", "description": "Assessment questions", "foreign_keys": ["modules"]},
+        {"name": "quiz_answers", "description": "Question answer options", "foreign_keys": ["quiz_questions"]}
+      ],
+      "progress": [
+        {"name": "user_progress", "description": "Lesson completion status", "foreign_keys": ["users", "modules"]},
+        {"name": "user_quiz_attempts", "description": "Quiz attempt records", "foreign_keys": ["users", "modules"]},
+        {"name": "user_program_progress", "description": "Program completion tracking", "foreign_keys": ["users", "programs"]}
+      ],
+      "messaging": [
+        {"name": "conversations", "description": "Messaging threads", "foreign_keys": ["users"]},
+        {"name": "messages", "description": "Individual messages", "foreign_keys": ["users", "conversations"]},
+        {"name": "conversation_members", "description": "Conversation participants", "foreign_keys": ["users", "conversations"]},
+        {"name": "attachments", "description": "Message attachments", "foreign_keys": ["messages", "users"]}
+      ]
+    },
+    "views": [
+      {"name": "department_conversations", "description": "Departmental conversations view"}
+    ],
+    "functions": [
+      {"name": "calculate_program_completion", "description": "Calculate user's program completion percentage"},
+      {"name": "make_user_admin", "description": "Promote user to admin role"}
+    ],
+    "security": {
+      "row_level_security": true,
+      "policies": [
+        "Users can view conversations they belong to",
+        "Users can create conversations",
+        "Users can view messages in their conversations",
+        "Users can send messages to conversations they belong to",
+        "Users can see members of their conversations",
+        "Users can manage their own conversation membership",
+        "Users can view attachments in their conversations",
+        "Users can upload attachments to their conversations"
+      ]
+    }
+  },
+  "integrations": {
+    "auth": {
+      "supabase_auth": {
+        "features": ["JWT", "Refresh token rotation", "Session management"]
+      }
+    },
+    "storage": {
+      "supabase_storage": {
+        "features": ["File uploads", "Secure access control", "Thumbnails"]
+      }
+    },
+    "content": {},
+    "ai": {},
+    "environment_variables": [
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "NEXT_PUBLIC_DEV_BYPASS_RLS"
     ]
   },
-  "integrations": ["Supabase", "OpenAI", "Vimeo", "YouTube"],
+  "security": {
+    "authentication": {
+      "provider": "Supabase Auth",
+      "strategy": "JWT with refresh token rotation",
+      "session_management": "Server-side validation with middleware"
+    },
+    "authorization": {
+      "row_level_security": "Supabase RLS policies",
+      "role_based_access": "User roles and permissions tables"
+    },
+    "middleware": {
+      "auth_protection": "Route protection based on authentication status",
+      "error_handling": "Centralized error capture and logging",
+      "performance_monitoring": "Request timing measurements"
+    },
+    "data_protection": {
+      "input_validation": "Zod schema validation",
+      "output_sanitization": "Type-safe database interfaces"
+    }
+  },
+  "deployment": {
+    "environments": ["development", "staging", "production"],
+    "hosting": "Vercel",
+    "database": "Supabase dedicated instance",
+    "ci_cd": {
+      "provider": "GitHub Actions",
+      "automated_tests": true,
+      "deployment_triggers": ["main branch commits", "release tags"]
+    },
+    "monitoring": {
+      "error_tracking": "Sentry",
+      "performance": "Vercel Analytics",
+      "logging": "Custom structured logger"
+    }
+  },
+  "development": {
+    "local_environment": {
+      "required_tools": ["Node.js 18+", "npm", "git"],
+      "setup_scripts": ["DEVELOPMENT_SETUP.md"]
+    },
+    "code_quality": {
+      "linting": "ESLint",
+      "formatting": "Prettier",
+      "type_checking": "TypeScript"
+    },
+    "database": {
+      "local_setup": "Supabase CLI",
+      "migrations": "SQL scripts",
+      "seed_data": "Development fixtures"
+    },
+    "documentation": {
+      "codebase": "README.md",
+      "api": "API documentation",
+      "database": "Schema documentation",
+      "setup": [
+        "DEVELOPMENT_SETUP.md",
+        "SUPABASE_RLS_SETUP.md",
+        "DISABLE_RLS_INSTRUCTIONS.md",
+        "DISABLE_RLS_DEV.md"
+      ]
+    }
+  },
+  "project_structure": {
+    "routing": "Next.js App Router",
+    "component_organization": "Feature-based organization",
+    "state_management": {
+      "global": "React Context",
+      "server_state": "React Query"
+    },
+    "api_organization": "Route-based API handlers",
+    "shared_code": {
+      "utilities": "lib/",
+      "hooks": "lib/hooks/",
+      "types": "types/",
+      "database": "lib/database.types.ts and lib/database-types.ts"
+    }
+  },
   "latest_update": "2025-03-10"
 }
