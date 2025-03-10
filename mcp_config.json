@@ -15,7 +15,24 @@
   "database": {
     "primary": "PostgreSQL",
     "host": "Supabase",
-    "schemas": ["users", "roles", "permissions", "departments", "venues", "courses", "lessons", "modules", "quizzes", "user_progress", "tip_pools", "schedules", "achievements"]
+    "schemas": [
+      "users",
+      "roles",
+      "permissions",
+      "departments",
+      "user_roles",
+      "venues",
+      "courses",
+      "lessons",
+      "modules",
+      "programs",
+      "quiz_questions",
+      "user_quiz_attempts",
+      "user_program_progress",
+      "user_progress",
+      "user_preferences",
+      "quiz_answers"
+    ]
   },
   "integrations": ["Supabase", "OpenAI", "Vimeo", "YouTube"],
   "latest_update": "2025-03-10"
