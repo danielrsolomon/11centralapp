@@ -1,196 +1,208 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import supabase from '@/lib/supabase-optimized'
+import { createClient } from '@supabase/supabase-js'
+import logger from '@/lib/logger'
+import { isPermissionError } from '@/lib/auth/permission-utils'
 
 /**
  * This component detects and tries to fix common authentication issues.
  * It should be included in the main layout to provide automatic recovery.
  */
 export default function SessionErrorDetector() {
-  const [hasError, setHasError] = useState(false)
-  const [isFixing, setIsFixing] = useState(false)
-  const [errorCount, setErrorCount] = useState(0)
   const router = useRouter()
+  const [sessionError, setSessionError] = useState<boolean>(false)
+  const [errorCount, setErrorCount] = useState<number>(0)
+  const [initialDelay, setInitialDelay] = useState<boolean>(true)
   
-  // Set up an event listener for authentication errors
   useEffect(() => {
-    let errorTimeoutId: NodeJS.Timeout | null = null
-    let resetErrorCountTimer: NodeJS.Timeout | null = null
+    // Wait for initial navigation/page loads to complete before monitoring
+    const delayTimer = setTimeout(() => setInitialDelay(false), 3000)
     
-    // Function to handle auth errors
-    const handleAuthError = (event: any) => {
-      // Skip performance warnings, session redirects, and normal operations
-      if (event.detail?.message && 
-          typeof event.detail.message === 'string' && 
-          (event.detail.message.includes('PERFORMANCE') ||
-           event.detail.message.includes('Redirecting') ||
-           event.detail.message.includes('No user') ||
-           event.detail.message.includes('timeout'))) {
-        return;
-      }
+    // Handle different types of errors
+    const handleError = (event: ErrorEvent) => {
+      if (initialDelay) return
       
-      // Only handle actual auth errors, not normal operations
-      if (event.detail?.type === 'auth' || 
-         (event.detail?.message && typeof event.detail.message === 'string' &&
-         (event.detail.message.includes('auth') || 
-          event.detail.message.includes('session') ||
-          event.detail.message.includes('token')))) {
-        
-        // Don't act on every error, wait until we get multiple errors
-        setErrorCount(prev => {
-          const newCount = prev + 1;
-          
-          // Only set hasError if we've seen multiple errors
-          if (newCount >= 3) {
-            setHasError(true);
-          }
-          
-          return newCount;
-        });
-        
-        // Clear any existing timeout
-        if (errorTimeoutId) {
-          clearTimeout(errorTimeoutId)
-        }
-        
-        // Auto-dismiss the error after 10 seconds
-        errorTimeoutId = setTimeout(() => {
-          setHasError(false)
-        }, 10000)
-        
-        // Start a timer to reset error count if no errors for 30 seconds
-        if (resetErrorCountTimer) {
-          clearTimeout(resetErrorCountTimer);
-        }
-        
-        resetErrorCountTimer = setTimeout(() => {
-          setErrorCount(0);
-        }, 30000);
-      }
+      const errorObj = event.error
+      const errorMsg = errorObj?.message || event.message || 'Unknown error'
+      
+      processError(errorObj, errorMsg)
     }
     
-    // Add the event listener
-    window.addEventListener('auth-error', handleAuthError)
-    
-    // Set up a listener for console errors and check for auth issues
-    const originalConsoleError = console.error
-    console.error = function(...args) {
-      // Skip performance warnings as they aren't actual errors
-      const errorString = args.map(arg => String(arg)).join(' ')
+    // Handle promise rejections
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      if (initialDelay) return
       
-      // Don't trigger on common operational messages
-      if (errorString.includes('PERFORMANCE') || 
-          errorString.includes('timeout') ||
-          errorString.includes('Redirecting')) {
-        // Just log performance issues without triggering error handling
-        originalConsoleError.apply(console, args)
-        return;
-      }
+      const errorObj = event.reason
+      const errorMsg = typeof errorObj === 'string' ? errorObj : 
+                     errorObj?.message || 'Promise rejection'
       
-      // Check if the error is related to authentication
-      if (errorString.includes('auth') || 
-          errorString.includes('session') || 
-          errorString.includes('token') || 
-          errorString.includes('refresh')) {
-        
-        // Dispatch a custom event for auth errors - but filter out common operational messages
-        if (!errorString.includes('getUser') && 
-            !errorString.includes('localStorage') &&
-            !errorString.includes('not defined')) {
-          window.dispatchEvent(new CustomEvent('auth-error', { 
-            detail: { 
-              type: 'auth',
-              message: errorString
-            } 
-          }))
-        }
-      }
-      
-      // Call the original console.error
-      originalConsoleError.apply(console, args)
+      processError(errorObj, errorMsg)
     }
     
-    // Clean up
+    // Common error processing logic
+    const processError = (errorObj: any, errorMsg: string) => {
+      // Skip hydration warnings
+      if (typeof errorMsg === 'string' && (
+        errorMsg.includes('Hydration failed') ||
+        errorMsg.includes('Text content does not match') ||
+        errorMsg.includes('Usage limit ') ||
+        errorMsg.includes('You logged in somewhere else')
+      )) {
+        return
+      }
+      
+      // Skip common network issues
+      if (
+        typeof errorMsg === 'string' && (
+          errorMsg.includes('aborted') || 
+          errorMsg.includes('canceled') ||
+          errorMsg.includes('fetch failed') ||
+          errorMsg.includes('NetworkError') ||
+          errorMsg.includes('Network request failed') ||
+          errorMsg.includes('Permission denied') ||
+          errorMsg.toLowerCase().includes('permission')
+        )
+      ) {
+        return
+      }
+
+      // Skip database column errors that aren't authentication issues
+      if (
+        typeof errorMsg === 'string' && (
+          errorMsg.includes('column') || 
+          errorMsg.includes('does not exist') ||
+          errorMsg.includes('42703') ||
+          errorMsg.includes('column not found') ||
+          errorMsg.includes('undefined column')
+        )
+      ) {
+        logger.warn('Ignoring database column error, not a session issue', { error: errorMsg })
+        return
+      }
+
+      // Skip if the error is specifically a permission error (not an auth error)
+      if (errorObj && isPermissionError(errorObj)) {
+        logger.debug('Ignoring permission error, not a session issue', { 
+          error: errorMsg,
+          name: errorObj.name 
+        })
+        return
+      }
+      
+      // Check for 403 status which might be a permission error, not an auth issue
+      if (errorObj?.status === 403 || errorObj?.statusCode === 403) {
+        // If the error has a requiresAuth flag set to false, it's a permission error, not auth
+        if (errorObj.requiresAuth === false) {
+          logger.debug('Ignoring 403 with requiresAuth=false flag', { error: errorMsg })
+          return
+        }
+        
+        // If the error message mentions permissions, it's likely not an auth issue
+        if (errorMsg.toLowerCase().includes('permission')) {
+          logger.debug('Ignoring 403 with permission message', { error: errorMsg })
+          return
+        }
+      }
+
+      // Skip 500 errors from the /api/auth/me endpoint, as these are likely database issues
+      // not authentication problems
+      if (
+        (errorObj?.status === 500 || errorObj?.statusCode === 500) &&
+        typeof errorMsg === 'string' && (
+          errorMsg.includes('/api/auth/me') ||
+          errorMsg.includes('user profile')
+        )
+      ) {
+        logger.warn('Ignoring 500 error from auth/me endpoint, likely not a session issue', {
+          error: errorMsg
+        })
+        return
+      }
+      
+      // Process auth-related errors that might indicate session problems
+      if (
+        // Standard auth error messages
+        (typeof errorMsg === 'string' && (
+          errorMsg.includes('not authenticated') ||
+          errorMsg.includes('not authorized') ||
+          errorMsg.includes('token is invalid') ||
+          errorMsg.includes('Invalid JWT') ||
+          errorMsg.includes('JWT expired') ||
+          errorMsg.includes('session expired') ||
+          errorMsg.includes('Unauthorized')
+        )) ||
+        // Or HTTP 401 status codes
+        errorObj?.status === 401 ||
+        errorObj?.statusCode === 401
+      ) {
+        logger.warn('Auth error detected, may require sign-in', { error: errorMsg })
+        
+        // Count errors to prevent immediate redirect on transient issues
+        setErrorCount(prevCount => prevCount + 1)
+        
+        // Multiple auth errors likely means session is invalid
+        if (errorCount >= 2) {
+          setSessionError(true)
+        }
+      }
+    }
+
+    // Listeners for different error types
+    window.addEventListener('error', handleError)
+    window.addEventListener('unhandledrejection', handleRejection)
+    
     return () => {
-      window.removeEventListener('auth-error', handleAuthError)
-      console.error = originalConsoleError
-      
-      if (errorTimeoutId) {
-        clearTimeout(errorTimeoutId)
-      }
-      
-      if (resetErrorCountTimer) {
-        clearTimeout(resetErrorCountTimer)
-      }
+      clearTimeout(delayTimer)
+      window.removeEventListener('error', handleError)
+      window.removeEventListener('unhandledrejection', handleRejection)
     }
-  }, [])
-  
-  // Try to fix auth issues when they occur
+  }, [initialDelay, errorCount, router])
+
+  // Redirect to auth page if session errors are detected
   useEffect(() => {
-    if (hasError && !isFixing && errorCount >= 3) {
-      const fixAuthIssues = async () => {
-        setIsFixing(true)
+    if (sessionError) {
+      const handleSessionError = async () => {
+        // Create a temporary Supabase client for sign-out
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+        )
         
         try {
-          // Sign out and clear local storage
+          // Log out before redirecting
+          logger.warn('Session appears invalid, signing out user')
           await supabase.auth.signOut()
           
-          // Clear any stored auth data (only on client)
-          if (typeof window !== 'undefined') {
-            try {
-              localStorage.removeItem('supabase.auth.token')
-            } catch (e) {
-              console.error('Error clearing auth token:', e)
-            }
-          }
+          // Clear any stored auth state or cookies
+          localStorage.removeItem('supabase.auth.token')
+          document.cookie = 'supabase-auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
           
-          // Clear all cookies with 'sb-' prefix
-          document.cookie.split(';').forEach(cookie => {
-            const name = cookie.split('=')[0].trim()
-            if (name.startsWith('sb-')) {
-              document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`
-            }
-          })
-          
-          // Redirect to login
-          setTimeout(() => {
-            router.push('/auth/login')
-            router.refresh()
-          }, 1000)
+          // Redirect to sign-in page
+          router.push('/auth/signin')
         } catch (error) {
-          console.log('Error fixing auth issues:', error)
-        } finally {
-          setIsFixing(false)
+          logger.error('Error handling session issue', error as Error)
+          // Force hard refresh after error
+          window.location.href = '/auth/signin'
         }
       }
       
-      fixAuthIssues()
+      handleSessionError()
     }
-  }, [hasError, isFixing, router, errorCount])
-  
-  // If the error count is too high, force a full refresh
-  useEffect(() => {
-    if (errorCount >= 10) {
-      // Too many errors, force a full page reload
-      window.location.href = '/auth/login'
-    }
-  }, [errorCount])
-  
-  if (!hasError) {
-    return null
-  }
-  
-  return (
-    <div className="fixed bottom-4 right-4 bg-red-600 text-white p-4 rounded-lg shadow-lg z-50 max-w-xs animate-pulse">
-      <h3 className="font-bold mb-1">Session Error Detected</h3>
-      <p className="text-sm">We've detected an authentication problem. Attempting to fix it automatically...</p>
-      {isFixing && (
-        <div className="mt-2 flex justify-center">
-          <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin"></div>
-        </div>
-      )}
+  }, [sessionError, router])
+
+  // Render nothing - this is just a monitoring component
+  return sessionError ? (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+      <div className="bg-white p-8 rounded-lg max-w-md text-center animate-fade-in">
+        <h3 className="font-bold mb-1">Session Error Detected</h3>
+        <p className="text-gray-600 mb-4">
+          Your session appears to have expired or become invalid.
+          Redirecting you to sign in...
+        </p>
+        <div className="animate-spin h-8 w-8 border-t-2 border-b-2 border-blue-500 rounded-full mx-auto"></div>
+      </div>
     </div>
-  )
+  ) : null
 } 

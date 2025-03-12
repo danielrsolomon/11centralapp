@@ -1,0 +1,40 @@
+# Supabase configuration
+NEXT_PUBLIC_SUPABASE_URL=https://vzykvoyanfijphtvmgtu.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6eWt2b3lhbmZpanBodHZtZ3R1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEzMzIxMjIsImV4cCI6MjA1NjkwODEyMn0.vpyw6VZw26QXIkfLRwJVXeiKawx-foVn0W7E7T0YhjM 
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6eWt2b3lhbmZpanBodHZtZ3R1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTMzMjEyMiwiZXhwIjoyMDU2OTA4MTIyfQ._imwAGfdQkiFg9He3RQTRPWQ8XGzlu_-Favce-gx9WI
+
+# Explicitly enable development bypass for RLS
+NEXT_PUBLIC_DEV_BYPASS_RLS=true
+
+# Feature Flags Configuration
+# --------------------------
+
+# LMS Service Implementation Feature Flags
+# Set to 'false' initially to gradually roll out new implementation
+NEXT_PUBLIC_FEATURE_USE_NEW_LMS_SERVICES=false
+
+# Enable for specific users (comma-separated UUIDs)
+NEXT_PUBLIC_FEATURE_USE_NEW_LMS_SERVICES_USERS=4b5ebee9-f260-4a4e-903e-fbd5f5369a09
+
+# Enable for users with specific roles (comma-separated)
+NEXT_PUBLIC_FEATURE_USE_NEW_LMS_SERVICES_ROLES=admin
+
+# Enable for users with admin status
+NEXT_PUBLIC_FEATURE_USE_NEW_LMS_SERVICES_ADMIN_EARLY_ACCESS=true
+
+# Enable for test environments
+NEXT_PUBLIC_FEATURE_USE_NEW_LMS_SERVICES_TEST=true
+
+# Progress Tracking Feature Flags
+NEXT_PUBLIC_FEATURE_USE_NEW_PROGRESS_TRACKING=false
+NEXT_PUBLIC_FEATURE_USE_NEW_PROGRESS_TRACKING_ADMIN_EARLY_ACCESS=true
+
+# Quiz System Feature Flags
+NEXT_PUBLIC_FEATURE_USE_NEW_QUIZ_SYSTEM=false
+NEXT_PUBLIC_FEATURE_USE_NEW_QUIZ_SYSTEM_ADMIN_EARLY_ACCESS=true
+
+# Database Clients Feature Flag
+NEXT_PUBLIC_FEATURE_USE_NEW_DATABASE_CLIENTS=true
+
+# Monitoring Feature Flag
+NEXT_PUBLIC_FEATURE_USE_SERVICE_MONITORING=true 

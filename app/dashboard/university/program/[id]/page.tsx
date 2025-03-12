@@ -1,20 +1,21 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-client'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ChevronLeft, Clock, Users, LayoutGrid, UserCircle2, Play, BookOpen } from 'lucide-react'
+import { useParams } from 'next/navigation'
+import { ChevronLeft, Clock, Users, LayoutGrid, UserCircle2, Play, BookOpen, Pencil } from 'lucide-react'
 
 type Program = {
   id: string
   title: string
   description: string
-  thumbnail_url: string | null
-  departments?: string[]
-  courses_count: number
+  thumbnail_url?: string | null
+  status: string
   created_at: string
   updated_at: string
+  courses_count?: number
 }
 
 type Course = {
@@ -22,7 +23,6 @@ type Course = {
   title: string
   description: string
   thumbnail_url?: string | null
-  program_id: string
   sequence_order: number
   status: string
   created_at: string
@@ -30,29 +30,41 @@ type Course = {
   lessons_count?: number
 }
 
-export default function ProgramDetail({ params }: { params: { id: string } }) {
+export default function ProgramDetail() {
+  // Use useParams hook instead of accepting params as a prop
+  const params = useParams();
+  const programId = Array.isArray(params?.id) ? params?.id[0] : params?.id;
+  
   const [program, setProgram] = useState<Program | null>(null)
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [isInstructor, setIsInstructor] = useState(false)
   
   const supabase = createClient()
   
   useEffect(() => {
-    fetchProgram()
-    fetchCourses()
-  }, [])
+    // Only fetch data if programId is available
+    if (programId) {
+      fetchProgram()
+      fetchCourses()
+      checkUserRoles()
+    } else {
+      setError('Program ID is required')
+      setLoading(false)
+    }
+  }, [programId])
   
   const fetchProgram = async () => {
     setLoading(true)
     setError(null)
     
     try {
-      // Fetch real program data from Supabase
       const { data, error } = await supabase
         .from('programs')
         .select('*')
-        .eq('id', params.id)
+        .eq('id', programId)
         .single()
         
       if (error) throw error
@@ -62,9 +74,12 @@ export default function ProgramDetail({ params }: { params: { id: string } }) {
       } else {
         setError('Program not found.')
       }
-    } catch (error: any) {
-      console.error('Error fetching program:', error)
+      
+      setLoading(false)
+    } catch (err) {
+      console.error('Error fetching program:', err)
       setError('Failed to fetch program details. Please try again later.')
+      setLoading(false)
     }
   }
   
@@ -74,7 +89,7 @@ export default function ProgramDetail({ params }: { params: { id: string } }) {
       const { data, error } = await supabase
         .from('courses')
         .select('*')
-        .eq('program_id', params.id)
+        .eq('program_id', programId)
         .order('sequence_order', { ascending: true })
         
       if (error) throw error
@@ -90,6 +105,30 @@ export default function ProgramDetail({ params }: { params: { id: string } }) {
     }
   }
   
+  const checkUserRoles = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) return
+      
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('program_id', programId)
+        
+      if (error) throw error
+      
+      if (data) {
+        setIsAdmin(data.some((role: any) => role.role === 'admin'))
+        setIsInstructor(data.some((role: any) => role.role === 'instructor'))
+      }
+    } catch (error: any) {
+      console.error('Error checking user roles:', error)
+      setError('Failed to check user roles. Please try again later.')
+    }
+  }
+  
   if (loading) return (
     <div className="flex h-64 items-center justify-center">
       <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#AE9773] border-t-transparent"></div>
@@ -101,8 +140,8 @@ export default function ProgramDetail({ params }: { params: { id: string } }) {
       <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-800">
         {error}
       </div>
-      <Link href="/dashboard/university/training" className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]">
-        <ChevronLeft className="mr-1 h-4 w-4" /> Back to Training Portal
+      <Link href="/dashboard/university/programs" className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]">
+        <ChevronLeft className="mr-1 h-4 w-4" /> Back to Programs
       </Link>
     </div>
   )
@@ -112,8 +151,8 @@ export default function ProgramDetail({ params }: { params: { id: string } }) {
       <div className="mb-6 rounded-lg bg-yellow-50 p-4 text-yellow-800">
         Program not found.
       </div>
-      <Link href="/dashboard/university/training" className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]">
-        <ChevronLeft className="mr-1 h-4 w-4" /> Back to Training Portal
+      <Link href="/dashboard/university/programs" className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]">
+        <ChevronLeft className="mr-1 h-4 w-4" /> Back to Programs
       </Link>
     </div>
   )
@@ -123,24 +162,45 @@ export default function ProgramDetail({ params }: { params: { id: string } }) {
       {/* Back Navigation */}
       <div className="bg-gray-100 py-4">
         <div className="mx-auto max-w-7xl px-4">
-          <Link href="/dashboard/university/training" className="inline-flex items-center text-gray-600 hover:text-gray-800">
-            <ChevronLeft className="mr-1 h-4 w-4" /> Back to Training Portal
+          <Link href="/dashboard/university/programs" className="inline-flex items-center text-gray-600 hover:text-gray-800">
+            <ChevronLeft className="mr-1 h-4 w-4" /> Back to Programs
           </Link>
         </div>
       </div>
       
       {/* Banner */}
       <div className="relative h-80 w-full bg-gray-900">
-        {program.thumbnail_url ? (
+        {program?.thumbnail_url ? (
           <Image
             src={program.thumbnail_url}
             alt={program.title}
             fill
             className="object-cover opacity-70"
             priority
+            onError={(e) => {
+              // Fix: Better fallback if image fails to load
+              const imgElement = e.currentTarget as HTMLImageElement;
+              imgElement.style.display = 'none';
+              // Parent div already has gradient background
+              
+              // Add a book icon to the gradient background
+              const parent = imgElement.parentElement;
+              if (parent) {
+                const iconDiv = document.createElement('div');
+                iconDiv.className = 'absolute inset-0 flex items-center justify-center';
+                iconDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>';
+                parent.appendChild(iconDiv);
+              }
+            }}
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-r from-[#AE9773] to-[#8E795D]"></div>
+          // Fix: Better fallback for missing thumbnails with a book icon
+          <div className="absolute inset-0 bg-gradient-to-r from-[#AE9773] to-[#8E795D] flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+            </svg>
+          </div>
         )}
         
         <div className="absolute inset-0 flex items-center">
@@ -199,11 +259,32 @@ export default function ProgramDetail({ params }: { params: { id: string } }) {
                           src={course.thumbnail_url}
                           alt={course.title}
                           fill
-                          className="object-cover transition-transform group-hover:scale-105"
+                          className="object-cover"
+                          onError={(e) => {
+                            // Fix: Better fallback for failed course thumbnail images
+                            const imgElement = e.currentTarget as HTMLImageElement;
+                            imgElement.style.display = 'none';
+                            
+                            // Add gradient background with book icon
+                            const parent = imgElement.parentElement;
+                            if (parent) {
+                              parent.classList.add('bg-gradient-to-r', 'from-[#AE9773]', 'to-[#8E795D]');
+                              
+                              // Add book icon
+                              const iconDiv = document.createElement('div');
+                              iconDiv.className = 'flex items-center justify-center h-full';
+                              iconDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>';
+                              parent.appendChild(iconDiv);
+                            }
+                          }}
                         />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gray-100">
-                          <BookOpen className="h-12 w-12 text-gray-400" />
+                        // Fix: Better fallback for missing course thumbnails
+                        <div className="w-full h-full bg-gradient-to-r from-[#AE9773] to-[#8E795D] flex items-center justify-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                          </svg>
                         </div>
                       )}
                       <div className="absolute bottom-2 right-2 rounded-full bg-white p-2 shadow group-hover:bg-[#AE9773] group-hover:text-white transition-colors">

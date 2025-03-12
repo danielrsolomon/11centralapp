@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-client'
 import { 
   Menu, 
   X, 
@@ -102,8 +102,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       // Set user name immediately with fallback to email username
       if (user.email) {
         const emailUsername = user.email.split('@')[0];
-        setUserName(emailUsername);
-        console.log('Set username from email:', emailUsername);
+        // Try to extract a first name from the username
+        const firstName = extractFirstName(emailUsername);
+        setUserName(firstName);
+        console.log('Set username from email:', firstName);
       }
       
       // Try to get the profile data
@@ -117,7 +119,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       
       // If we got profile data, update with better name
       if (!error && profile) {
-        setUserName(profile.first_name || user.email?.split('@')[0] || 'User');
+        setUserName(profile.first_name || extractFirstName(user.email?.split('@')[0] || '') || 'User');
         if (profile.is_admin === true) {
           console.log('User is admin (from profile)');
           setIsAdmin(true);
@@ -304,8 +306,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                       Dashboard
                     </NavItem>
                     
-                    <NavItem href="/dashboard/university/training" icon={<GraduationCap className="h-5 w-5" />} isSubmenu>
-                      Training Portal
+                    <NavItem href="/dashboard/university/programs" icon={<GraduationCap className="h-5 w-5" />} isSubmenu>
+                      Programs
                     </NavItem>
                     
                     <NavItem href="/dashboard/university/achievements" icon={<Trophy className="h-5 w-5" />} isSubmenu>
@@ -455,4 +457,42 @@ function NavItem({
       {children}
     </Link>
   )
-} 
+}
+
+// Helper function to extract a first name from usernames like 'danielrsolomon'
+const extractFirstName = (username: string): string => {
+  if (!username) return 'User';
+  
+  // Try different common patterns
+  // 1. Check for camelCase (e.g., danielRSolomon)
+  if (/[a-z][A-Z]/.test(username)) {
+    return username.split(/(?=[A-Z])/)[0];
+  }
+  
+  // 2. Check for snake_case (e.g., daniel_r_solomon)
+  if (username.includes('_')) {
+    return username.split('_')[0];
+  }
+  
+  // 3. Check for hyphenated names (e.g., daniel-r-solomon)
+  if (username.includes('-')) {
+    return username.split('-')[0];
+  }
+  
+  // 4. Try to guess a reasonable split point if none of the above worked
+  // For usernames like 'danielrsolomon', try to find common name endings
+  const commonNameEndings = ['solomon', 'smith', 'jones', 'williams', 'johnson'];
+  for (const ending of commonNameEndings) {
+    if (username.toLowerCase().endsWith(ending) && username.length > ending.length) {
+      return username.substring(0, username.length - ending.length);
+    }
+  }
+  
+  // If username is long enough, assume the first 6 chars might be a first name
+  if (username.length > 7) {
+    return username.substring(0, 6);
+  }
+  
+  // If all else fails, just capitalize the first letter
+  return username.charAt(0).toUpperCase() + username.slice(1);
+}; 

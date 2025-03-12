@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Trash2, AlertTriangle, LogOut, Download } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-client'
 import { useRouter } from 'next/navigation'
 
 export default function AccountSettings() {

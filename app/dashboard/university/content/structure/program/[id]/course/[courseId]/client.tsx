@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-client'
 import { Folder, Book, Edit, Trash2, ArrowLeft, Plus, X, Eye, FileText } from 'lucide-react'
 import Link from 'next/link'
 

@@ -105,3 +105,30 @@ This application uses Supabase for authentication and database functionality. To
    ```bash
    supabase gen types typescript --local > types/supabase.ts
    ```
+
+### Database Optimizations
+
+To ensure optimal performance as the application scales, the database has been optimized with strategic indexes:
+
+#### Implemented Indexes (March 10, 2025)
+
+The following database indexes have been created to support scalability:
+
+- **users.email**: Speeds up authentication and user lookups
+- **user_progress.[user_id, module_id]**: Optimizes dashboard performance for learning progress tracking
+- **messages.[conversation_id, created_at]**: Improves messaging performance for conversation history
+- **conversations.updated_at**: Enhances sorting of conversations by recency
+- **user_roles.user_id**: Accelerates permission checks and role-based access
+
+These optimizations ensure the application can handle increased load while maintaining responsive performance. They specifically target the most frequently accessed data paths in the application.
+
+📚 **[View Detailed Indexing Documentation →](./DEVELOPMENT_SETUP.md#database-indexing)**
+
+For comprehensive information about:
+- Index structures and purposes
+- The reasoning behind index selection
+- When to add new indexes
+- Cautions about over-indexing
+- References to Supabase/PostgreSQL indexing guides
+
+When implementing new features that introduce new data access patterns, consider whether additional indexes may be beneficial for performance. Always test and benchmark before and after adding indexes.

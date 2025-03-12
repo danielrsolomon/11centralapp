@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-client'
 import { Inbox, Bell, Users, MessageSquare, Search, PlusCircle, Filter, Star, File, Paperclip } from 'lucide-react'
 
 // Type definitions

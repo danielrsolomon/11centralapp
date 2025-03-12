@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ChevronRight, Book, BookOpen, Award, Clock, BarChart3, GraduationCap, CheckCircle } from 'lucide-react'
+import { ChevronRight, Book, BookOpen, Award, Clock, BarChart3, GraduationCap, CheckCircle, Layers } from 'lucide-react'
 import supabase from '@/lib/supabase-optimized'
 import logger from '@/lib/logger'
 import usePerformanceMonitoring from '@/lib/hooks/usePerformanceMonitoring'
@@ -72,14 +72,14 @@ export default function UniversityDashboard() {
   
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Training Portal Button */}
+      {/* Programs Button */}
       <div className="mb-8 flex justify-end">
         <Link 
-          href="/dashboard/university/training" 
+          href="/dashboard/university/programs" 
           className="inline-flex items-center px-4 py-2 bg-[#AE9773] text-white rounded-md hover:bg-[#9e866a] transition-colors"
         >
           <Book className="mr-2 h-4 w-4" />
-          Go to Training Portal
+          Browse Programs
         </Link>
       </div>
       
@@ -121,7 +121,7 @@ export default function UniversityDashboard() {
             </div>
           </div>
           <div className="mt-4">
-            <Link href="/dashboard/university/training" className="text-[#AE9773] hover:underline text-sm font-medium flex items-center">
+            <Link href="/dashboard/university/programs" className="text-[#AE9773] hover:underline text-sm font-medium flex items-center">
               Continue Learning
               <ChevronRight className="ml-1 w-4 h-4" />
             </Link>
@@ -154,12 +154,12 @@ export default function UniversityDashboard() {
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Quick Access</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link 
-            href="/dashboard/university/training" 
+            href="/dashboard/university/programs" 
             className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow flex flex-col items-center text-center"
           >
             <GraduationCap className="h-8 w-8 text-[#AE9773] mb-3" />
-            <h3 className="font-medium text-gray-800">Training Portal</h3>
-            <p className="text-sm text-gray-500 mt-1">Access all training modules</p>
+            <h3 className="font-medium text-gray-800">Programs</h3>
+            <p className="text-sm text-gray-500 mt-1">Browse training programs</p>
           </Link>
           
           <Link 

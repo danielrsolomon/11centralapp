@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Save, AlertCircle, CheckCircle } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-client'
 
 export default function NotificationPreferences() {
   const [isLoading, setIsLoading] = useState(true)

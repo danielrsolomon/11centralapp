@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-client'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ChevronLeft, BookOpen, Play, FileText, Video } from 'lucide-react'
@@ -45,6 +45,8 @@ export default function LessonDetail({ params }: { params: { id: string } }) {
   const [modules, setModules] = useState<Module[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [isInstructor, setIsInstructor] = useState(false)
   
   const supabase = createClient()
   
@@ -72,6 +74,8 @@ export default function LessonDetail({ params }: { params: { id: string } }) {
         fetchCourse(data.course_id)
         // Fetch modules for this lesson
         fetchModules(data.id)
+        // Check user roles
+        checkUserRoles()
       } else {
         setError('Lesson not found.')
       }
@@ -119,6 +123,29 @@ export default function LessonDetail({ params }: { params: { id: string } }) {
     }
   }
   
+  const checkUserRoles = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) return
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('is_admin, is_instructor')
+        .eq('id', user.id)
+        .single()
+        
+      if (error) throw error
+      
+      if (data) {
+        setIsAdmin(data.is_admin)
+        setIsInstructor(data.is_instructor)
+      }
+    } catch (error) {
+      console.error('Error checking user roles:', error)
+    }
+  }
+  
   if (loading) return (
     <div className="flex h-64 items-center justify-center">
       <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#AE9773] border-t-transparent"></div>
@@ -130,8 +157,8 @@ export default function LessonDetail({ params }: { params: { id: string } }) {
       <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-800">
         {error}
       </div>
-      <Link href="/dashboard/university/training" className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]">
-        <ChevronLeft className="mr-1 h-4 w-4" /> Back to Training Portal
+      <Link href="/dashboard/university/programs" className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]">
+        <ChevronLeft className="mr-1 h-4 w-4" /> Back to Programs
       </Link>
     </div>
   )
@@ -141,8 +168,8 @@ export default function LessonDetail({ params }: { params: { id: string } }) {
       <div className="mb-6 rounded-lg bg-yellow-50 p-4 text-yellow-800">
         Lesson not found.
       </div>
-      <Link href="/dashboard/university/training" className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]">
-        <ChevronLeft className="mr-1 h-4 w-4" /> Back to Training Portal
+      <Link href="/dashboard/university/programs" className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]">
+        <ChevronLeft className="mr-1 h-4 w-4" /> Back to Programs
       </Link>
     </div>
   )
@@ -157,8 +184,8 @@ export default function LessonDetail({ params }: { params: { id: string } }) {
               <ChevronLeft className="mr-1 h-4 w-4" /> Back to {course.title}
             </Link>
           ) : (
-            <Link href="/dashboard/university/training" className="inline-flex items-center text-gray-600 hover:text-gray-800">
-              <ChevronLeft className="mr-1 h-4 w-4" /> Back to Training Portal
+            <Link href="/dashboard/university/programs" className="inline-flex items-center text-gray-600 hover:text-gray-800">
+              <ChevronLeft className="mr-1 h-4 w-4" /> Back to Programs
             </Link>
           )}
         </div>
@@ -178,6 +205,33 @@ export default function LessonDetail({ params }: { params: { id: string } }) {
           )}
         </div>
       </div>
+      
+      {/* Admin Actions */}
+      {isAdmin && (
+        <div className="mb-4">
+          <Link href="/dashboard/university/programs" className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]">
+            <ChevronLeft className="mr-1 h-4 w-4" /> Back to Programs
+          </Link>
+        </div>
+      )}
+      
+      {/* Instructor Actions */}
+      {isInstructor && (
+        <div className="mb-4">
+          <Link href="/dashboard/university/programs" className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]">
+            <ChevronLeft className="mr-1 h-4 w-4" /> Back to Programs
+          </Link>
+        </div>
+      )}
+      
+      {/* Standard User Actions */}
+      {!isAdmin && !isInstructor && (
+        <div className="mb-4">
+          <Link href="/dashboard/university/programs" className="inline-flex items-center text-gray-600 hover:text-gray-800">
+            <ChevronLeft className="mr-1 h-4 w-4" /> Back to Programs
+          </Link>
+        </div>
+      )}
       
       {/* Lesson Content */}
       <div className="flex-1 bg-gray-50">

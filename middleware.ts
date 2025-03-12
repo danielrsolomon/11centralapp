@@ -1,6 +1,7 @@
-import { createServerClient } from '@supabase/ssr'
+import { createMiddlewareClient } from './lib/supabase-server'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { hasAdminRole } from '@/lib/auth/permission-utils'
 
 // Define logging function since we can't import modules in middleware
 function log(level: 'info' | 'error' | 'warn', message: string, details?: any) {
@@ -29,51 +30,8 @@ export async function middleware(request: NextRequest) {
       },
     })
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return request.cookies.get(name)?.value
-          },
-          set(name: string, value: string, options: any) {
-            request.cookies.set({
-              name,
-              value,
-              ...options,
-            })
-            response = NextResponse.next({
-              request: {
-                headers: request.headers,
-              },
-            })
-            response.cookies.set({
-              name,
-              value,
-              ...options,
-            })
-          },
-          remove(name: string, options: any) {
-            request.cookies.set({
-              name,
-              value: '',
-              ...options,
-            })
-            response = NextResponse.next({
-              request: {
-                headers: request.headers,
-              },
-            })
-            response.cookies.set({
-              name,
-              value: '',
-              ...options,
-            })
-          },
-        },
-      }
-    )
+    // Use our consolidated middleware client
+    const supabase = createMiddlewareClient(request, response)
 
     const { data: userData, error: userError } = await supabase.auth.getUser()
     
@@ -98,35 +56,86 @@ export async function middleware(request: NextRequest) {
     if (userData.user && request.nextUrl.pathname.startsWith('/auth')) {
       log('info', 'Redirecting authenticated user to dashboard', { 
         from: request.nextUrl.pathname,
-        userId: userData.user.id || 'unknown'
+        userId: userData.user.id
       })
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
-
-    const duration = Date.now() - startTime
-    if (duration > 200) {
-      log('warn', `Slow middleware execution: ${duration}ms`, {
+    
+    // Check for superadmin role if accessing protected routes
+    if (userData.user && request.nextUrl.pathname.startsWith('/admin')) {
+      // Get user profile to check for superadmin role
+      // Note: Don't select preferences as it's in a separate table
+      const { data: userProfile, error: profileError } = await supabase
+        .from('users')
+        .select('id, role, is_admin')
+        .eq('id', userData.user.id)
+        .single()
+      
+      if (profileError) {
+        log('error', 'Error fetching user profile for permission check', { error: profileError.message })
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+      
+      // Check if user is superadmin using our permission utility
+      // This ensures case-insensitive role checking and supports both is_admin flag
+      // and 'superadmin' role value
+      const isSuperAdmin = hasAdminRole(userProfile)
+      
+      // If not superadmin, redirect to dashboard
+      if (!isSuperAdmin) {
+        log('warn', 'Unauthorized access attempt to admin route', { 
+          userId: userData.user.id,
+          role: userProfile?.role,
+          is_admin: userProfile?.is_admin,
+          path: request.nextUrl.pathname
+        })
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+      
+      log('info', 'Superadmin access granted', {
+        userId: userData.user.id,
+        role: userProfile?.role,
         path: request.nextUrl.pathname
       })
     }
     
-    return response
-  } catch (err) {
-    // Log the error and redirect to login on any unexpected error
-    log('error', 'Middleware exception', { 
-      error: err instanceof Error ? err.message : String(err),
-      path: request.nextUrl.pathname
-    })
-    
-    if (!request.nextUrl.pathname.startsWith('/auth')) {
-      return NextResponse.redirect(new URL('/auth/login', request.url))
+    // Allow authenticated users to access protected routes
+    if (userData.user) {
+      log('info', 'User authenticated, allowing access to', { 
+        path: request.nextUrl.pathname,
+        userId: userData.user.id
+      })
     }
     
+    // Add custom headers
+    const responseHeaders = new Headers(response.headers)
+    responseHeaders.set('x-middleware-processed', 'true')
+    responseHeaders.set('x-processing-time', `${Date.now() - startTime}ms`)
+    
+    // Create a new response with our headers
     return NextResponse.next({
       request: {
         headers: request.headers,
       },
+      headers: responseHeaders,
     })
+  } catch (error) {
+    // Log the error
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    log('error', `Middleware exception: ${errorMessage}`)
+    
+    // Handle the exception by allowing the request to proceed
+    // But redirect to login if it's a protected route
+    if (!request.nextUrl.pathname.startsWith('/auth')) {
+      log('info', 'Redirecting to login after middleware error')
+      return NextResponse.redirect(new URL('/auth/login', request.url))
+    }
+    
+    return NextResponse.next()
+  } finally {
+    // Log the total processing time
+    const duration = Date.now() - startTime
+    log('info', `Middleware completed in ${duration}ms`)
   }
 }
 

@@ -9,7 +9,7 @@
     "components": {
       "ui": ["Custom UI components"],
       "auth": ["Login", "Registration", "Password Reset"],
-      "dashboard": ["Dashboard components"],
+      "dashboard": ["Dashboard components", "SuperAdmin Dashboard components"],
       "profile": ["Profile management components"],
       "program": ["Learning program components"],
       "connect": ["Connect messaging components"],
@@ -19,23 +19,39 @@
     "styling": {
       "frameworks": ["Tailwind CSS", "tailwindcss-animate"],
       "theming": "next-themes"
+    },
+    "image_handling": {
+      "missing_thumbnails": "Graceful fallbacks with themed placeholders",
+      "upload_strategies": ["Supabase Storage", "Data URL fallback"]
     }
   },
   "backend": {
     "api_framework": "Next.js API routes",
     "api_routes": {
-      "auth": ["Login", "Logout", "Refresh", "Password Reset"],
+      "auth": ["Login", "Logout", "Refresh", "Password Reset", "SuperAdmin checks"],
       "dev_actions": ["Development utilities"],
       "diagnostics": ["System health checks"],
-      "env_check": ["Environment validation"]
+      "env_check": ["Environment validation"],
+      "learning": ["Program management", "Department management", "Course assignments", "Program archiving"]
     },
     "server_components": "Next.js Server Components",
     "auth_method": "JWT (refresh token rotation)",
     "database": "Supabase (PostgreSQL)",
-    "middleware": ["Authentication", "Validation", "Logging"],
+    "middleware": ["Authentication", "Validation", "Logging", "SuperAdmin Permission Check"],
     "error_handling": {
-      "strategy": "Centralized error handling",
-      "logging": "Structured logging with environment-aware levels"
+      "strategy": "Centralized error handling with graceful fallbacks",
+      "logging": "Structured logging with environment-aware levels",
+      "user_data_resilience": "Fallback to minimal permissions on database errors"
+    },
+    "permission_handling": {
+      "approach": "Direct role-based checks",
+      "fallback_behavior": "Default deny",
+      "minimal_db_dependency": "Avoid complex joins and preference lookups in critical paths",
+      "strategies": [
+        "Direct role check from users table",
+        "Secondary check from user_roles table",
+        "Avoid permission-utils abstraction for critical operations"
+      ]
     }
   },
   "database": {
@@ -43,8 +59,8 @@
     "host": "Supabase",
     "tables": {
       "core": [
-        {"name": "users", "description": "User accounts", "foreign_keys": ["auth.users"]},
-        {"name": "user_preferences", "description": "User app preferences", "foreign_keys": ["users"]},
+        {"name": "users", "description": "User accounts", "foreign_keys": ["auth.users"], "notes": "Contains essential user fields - no preferences column, use user_preferences table instead"},
+        {"name": "user_preferences", "description": "User app preferences", "foreign_keys": ["users"], "notes": "All user preference/permission data should go here, NOT in users table"},
         {"name": "roles", "description": "Available system roles", "foreign_keys": []},
         {"name": "permissions", "description": "Permission definitions", "foreign_keys": []},
         {"name": "user_roles", "description": "User role assignments", "foreign_keys": ["users", "roles", "departments", "venues"]},
@@ -52,8 +68,9 @@
       ],
       "learning": [
         {"name": "departments", "description": "Organizational departments", "foreign_keys": []},
-        {"name": "programs", "description": "Training programs", "foreign_keys": ["departments"]},
-        {"name": "courses", "description": "Courses within programs", "foreign_keys": ["programs"]},
+        {"name": "programs", "description": "Training programs", "foreign_keys": ["departments"], "required_fields": ["status", "updated_at", "updated_by"]},
+        {"name": "program_departments", "description": "Associative table linking programs and departments", "foreign_keys": ["programs", "departments"]},
+        {"name": "courses", "description": "Courses within programs", "foreign_keys": ["programs"], "optional_fields": ["thumbnail_url"], "required_fields": ["sequence_order", "status"]},
         {"name": "modules", "description": "Course modules", "foreign_keys": ["courses"]},
         {"name": "lessons", "description": "Module lessons", "foreign_keys": ["modules"]},
         {"name": "quiz_questions", "description": "Assessment questions", "foreign_keys": ["modules"]},
@@ -71,13 +88,6 @@
         {"name": "attachments", "description": "Message attachments", "foreign_keys": ["messages", "users"]}
       ]
     },
-    "views": [
-      {"name": "department_conversations", "description": "Departmental conversations view"}
-    ],
-    "functions": [
-      {"name": "calculate_program_completion", "description": "Calculate user's program completion percentage"},
-      {"name": "make_user_admin", "description": "Promote user to admin role"}
-    ],
     "security": {
       "row_level_security": true,
       "policies": [
@@ -88,106 +98,38 @@
         "Users can see members of their conversations",
         "Users can manage their own conversation membership",
         "Users can view attachments in their conversations",
-        "Users can upload attachments to their conversations"
+        "Users can upload attachments to their conversations",
+        "Authenticated users can upload/delete images in storage"
       ]
     }
   },
   "integrations": {
     "auth": {
       "supabase_auth": {
-        "features": ["JWT", "Refresh token rotation", "Session management"]
+        "features": ["JWT", "Refresh token rotation", "Session management"],
+        "auth_patterns": {
+          "api_route_handlers": "createRouteHandlerClient() with auth.getUser()",
+          "client_components": "createClient() with auth.getUser()"
+        }
       }
     },
     "storage": {
       "supabase_storage": {
-        "features": ["File uploads", "Secure access control", "Thumbnails"]
+        "features": ["File uploads", "Secure access control", "Thumbnails", "Image uploads/deletion via authenticated roles"],
+        "buckets": ["course-thumbnails", "course_thumbnails", "thumbnails", "images", "avatars", "public", "courses"],
+        "fallback_strategy": "Data URL conversion when buckets unavailable"
       }
-    },
-    "content": {},
-    "ai": {},
-    "environment_variables": [
-      "NEXT_PUBLIC_SUPABASE_URL",
-      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-      "SUPABASE_SERVICE_ROLE_KEY",
-      "NEXT_PUBLIC_DEV_BYPASS_RLS"
-    ]
-  },
-  "security": {
-    "authentication": {
-      "provider": "Supabase Auth",
-      "strategy": "JWT with refresh token rotation",
-      "session_management": "Server-side validation with middleware"
-    },
-    "authorization": {
-      "row_level_security": "Supabase RLS policies",
-      "role_based_access": "User roles and permissions tables"
-    },
-    "middleware": {
-      "auth_protection": "Route protection based on authentication status",
-      "error_handling": "Centralized error capture and logging",
-      "performance_monitoring": "Request timing measurements"
-    },
-    "data_protection": {
-      "input_validation": "Zod schema validation",
-      "output_sanitization": "Type-safe database interfaces"
     }
   },
-  "deployment": {
-    "environments": ["development", "staging", "production"],
-    "hosting": "Vercel",
-    "database": "Supabase dedicated instance",
-    "ci_cd": {
-      "provider": "GitHub Actions",
-      "automated_tests": true,
-      "deployment_triggers": ["main branch commits", "release tags"]
-    },
-    "monitoring": {
-      "error_tracking": "Sentry",
-      "performance": "Vercel Analytics",
-      "logging": "Custom structured logger"
-    }
+  "best_practices": {
+    "user_data_handling": "Always fetch only essential columns and handle missing data gracefully",
+    "image_uploads": "Try multiple buckets with clear user feedback on failures",
+    "error_handling": "Provide graceful fallbacks rather than failing completely",
+    "database_schema": "Keep preferences in user_preferences table, not in users table",
+    "optional_columns": "Use conditional inclusion of fields like thumbnail_url",
+    "permissions": "Use simple direct role checks instead of complex permission utilities for critical operations",
+    "nextjs_patterns": "Use useParams() hook for client components instead of passing params as props",
+    "api_design": "Keep API routes simple with minimal dependencies on complex abstractions"
   },
-  "development": {
-    "local_environment": {
-      "required_tools": ["Node.js 18+", "npm", "git"],
-      "setup_scripts": ["DEVELOPMENT_SETUP.md"]
-    },
-    "code_quality": {
-      "linting": "ESLint",
-      "formatting": "Prettier",
-      "type_checking": "TypeScript"
-    },
-    "database": {
-      "local_setup": "Supabase CLI",
-      "migrations": "SQL scripts",
-      "seed_data": "Development fixtures"
-    },
-    "documentation": {
-      "codebase": "README.md",
-      "api": "API documentation",
-      "database": "Schema documentation",
-      "setup": [
-        "DEVELOPMENT_SETUP.md",
-        "SUPABASE_RLS_SETUP.md",
-        "DISABLE_RLS_INSTRUCTIONS.md",
-        "DISABLE_RLS_DEV.md"
-      ]
-    }
-  },
-  "project_structure": {
-    "routing": "Next.js App Router",
-    "component_organization": "Feature-based organization",
-    "state_management": {
-      "global": "React Context",
-      "server_state": "React Query"
-    },
-    "api_organization": "Route-based API handlers",
-    "shared_code": {
-      "utilities": "lib/",
-      "hooks": "lib/hooks/",
-      "types": "types/",
-      "database": "lib/database.types.ts and lib/database-types.ts"
-    }
-  },
-  "latest_update": "2025-03-10"
+  "latest_update": "2024-05-27"
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-client'
 import { AlertCircle, CheckCircle, ArrowUpDown, Trash2, RefreshCw, PanelLeft } from 'lucide-react'
 
 export default function ContentIntegrityCheck() {

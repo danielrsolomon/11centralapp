@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Eye, EyeOff, Shield, Key, AlertCircle } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-client'
 
 export default function SecuritySettings() {
   const [currentPassword, setCurrentPassword] = useState('')

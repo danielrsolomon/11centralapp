@@ -68,3 +68,50 @@ When you're ready to test with actual RLS policies:
 1. Set `NEXT_PUBLIC_DEV_BYPASS_RLS=false` in your `.env.local` file
 2. Set up proper RLS policies as described in `SUPABASE_RLS_SETUP.md`
 3. Add appropriate roles to your test users 
+
+## Database Optimization
+
+### Database Indexing
+
+As of March 10, 2025, the following database indexes have been created in Supabase to optimize performance:
+
+| Table | Columns | Type | Purpose |
+|-------|---------|------|---------|
+| users | email | btree | Faster user lookups when authenticating by email |
+| user_progress | user_id, module_id | btree | Optimize queries for tracking user progress through modules |
+| messages | conversation_id, created_at | btree | Speed up message retrieval and sorting within conversations |
+| conversations | updated_at | btree | Improve performance when sorting conversations by recent activity |
+| user_roles | user_id | btree | Accelerate permission checks and role-based access control |
+
+#### Why These Indexes Were Added
+
+These indexes were strategically created to address performance bottlenecks in the most frequently accessed data paths:
+
+1. **Authentication flows**: Optimized email lookups improve login performance
+2. **Dashboard load times**: Faster progress and role checks improve initial page loads
+3. **Messaging performance**: Conversation and message indexes ensure smooth messaging experiences, even with high message volumes
+4. **Role-based security**: User role indexes ensure permission checks remain fast even as user count grows
+
+#### When to Add New Indexes
+
+Consider adding new indexes when:
+- Query performance degrades for specific operations
+- New features introduce new frequent query patterns
+- Data volume grows significantly (>100k records in a table)
+
+Always benchmark before and after adding indexes to ensure they provide the expected performance improvement.
+
+#### Caution About Over-Indexing
+
+While indexes speed up reads, they slow down writes and increase storage requirements. Only add indexes on columns that are frequently used in WHERE clauses, JOIN conditions, or ORDER BY statements. 
+
+#### References and Further Reading
+
+For developers who want to learn more about database indexing strategies in Supabase:
+
+- [Supabase Database Indexing Documentation](https://supabase.com/docs/guides/database/postgres/indexes)
+- [PostgreSQL Index Types](https://www.postgresql.org/docs/current/indexes-types.html)
+- [PostgreSQL Index Performance Tips](https://www.postgresql.org/docs/current/performance-tips.html)
+
+You can also find practical examples of indexing in the Supabase GitHub repository:
+- [Supabase Schema Examples](https://github.com/supabase/supabase/tree/master/examples) 

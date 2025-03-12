@@ -14,6 +14,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'interactive-examples.mdn.mozilla.net',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
       }
     ],
   },

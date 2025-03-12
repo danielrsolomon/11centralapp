@@ -1,139 +1,172 @@
 /**
- * Utility for standardized logging across the application
- * Provides different log levels and contextual information
+ * Logger Utility
+ * 
+ * This module provides a centralized logging utility for the application
+ * with environment-based log levels and structured logging.
  */
-import performanceConfig from './performance.config'
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error'
-
-interface LogOptions {
-  // Additional context information
-  context?: Record<string, any>
-  // Component or module name
-  component?: string
-  // Add timestamp to log
-  timestamp?: boolean
+// Log levels enum
+export enum LogLevel {
+  DEBUG = 0,
+  INFO = 1,
+  WARN = 2,
+  ERROR = 3,
+  NONE = 4
 }
 
-// Default options
-const defaultOptions: LogOptions = {
-  timestamp: true
+// Extended log options with support for error handling properties
+export interface LogOptions {
+  component?: string;
+  // Allow for any custom properties needed by error handling
+  [key: string]: any;
 }
 
-// Determine if we should log based on environment
+// Current log level based on environment
+const getCurrentLogLevel = (): LogLevel => {
+  if (typeof window === 'undefined') {
+    // Server-side
+    return process.env.NODE_ENV === 'production' ? LogLevel.WARN : LogLevel.DEBUG;
+  } else {
+    // Client-side
+    return process.env.NODE_ENV === 'production' ? LogLevel.WARN : LogLevel.DEBUG;
+  }
+};
+
+const LOG_LEVEL = getCurrentLogLevel();
+
+// Check if we should log based on the current level
 const shouldLog = (level: LogLevel): boolean => {
-  // Always log errors
-  if (level === 'error') return true
-  
-  // In development, log everything
-  if (process.env.NODE_ENV === 'development') return true
-  
-  // In production, don't log debug
-  if (process.env.NODE_ENV === 'production' && level === 'debug') return false
-  
-  return true
-}
+  return level >= LOG_LEVEL;
+};
 
-// Format the log message with additional context
-const formatLogMessage = (
-  message: string,
+/**
+ * Format log message with timestamp and additional options
+ */
+const formatLogMessage = (message: string, options?: LogOptions): string => {
+  const timestamp = new Date().toISOString();
+  const component = options?.component ? `[${options.component}]` : '';
+  return `[${timestamp}]${component} ${message}`;
+};
+
+/**
+ * Format options for console output
+ */
+const formatOptions = (options?: LogOptions): any => {
+  if (!options) return undefined;
+  
+  // Clone options to avoid modifying the original
+  const formattedOptions = { ...options };
+  
+  // Clean up component as it's already in the message
+  delete formattedOptions.component;
+  
+  return Object.keys(formattedOptions).length > 0 ? formattedOptions : undefined;
+};
+
+/**
+ * Generic log function
+ */
+const log = (
   level: LogLevel,
-  options: LogOptions = {}
-): string => {
-  const opts = { ...defaultOptions, ...options }
-  const timestamp = opts.timestamp ? `[${new Date().toISOString()}]` : ''
-  const component = opts.component ? `[${opts.component}]` : ''
-  
-  return `${timestamp} ${level.toUpperCase()} ${component} ${message}`
-}
+  message: string,
+  error?: Error,
+  options?: LogOptions
+): void => {
+  if (!shouldLog(level)) return;
 
-// Format context object for logging
-const formatContext = (context?: Record<string, any>): string => {
-  if (!context) return ''
-  
-  try {
-    // Handle circular references and simplify output
-    return JSON.stringify(context, (key, value) => {
-      if (key === 'password' || key === 'token') return '[REDACTED]'
-      if (typeof value === 'object' && value !== null) {
-        if (seen.has(value)) return '[Circular]'
-        seen.add(value)
+  const formattedMessage = formatLogMessage(message, options);
+  const formattedOptions = formatOptions(options);
+
+  switch (level) {
+    case LogLevel.DEBUG:
+      if (formattedOptions) {
+        console.debug(formattedMessage, formattedOptions);
+      } else {
+        console.debug(formattedMessage);
       }
-      return value
-    }, 2)
-  } catch (err) {
-    return `[Context serialization error: ${err}]`
+      break;
+    case LogLevel.INFO:
+      if (formattedOptions) {
+        console.info(formattedMessage, formattedOptions);
+      } else {
+        console.info(formattedMessage);
+      }
+      break;
+    case LogLevel.WARN:
+      if (error) {
+        console.warn(formattedMessage, error, formattedOptions);
+      } else if (formattedOptions) {
+        console.warn(formattedMessage, formattedOptions);
+      } else {
+        console.warn(formattedMessage);
+      }
+      break;
+    case LogLevel.ERROR:
+      if (error) {
+        console.error(formattedMessage, error, formattedOptions);
+      } else if (formattedOptions) {
+        console.error(formattedMessage, formattedOptions);
+      } else {
+        console.error(formattedMessage);
+      }
+      break;
   }
-}
+};
 
-// Set to track circular references
-const seen = new Set()
-
-// The logger object
+// Public API
 const logger = {
-  debug: (message: string, options?: LogOptions) => {
-    if (!shouldLog('debug')) return
-    const formattedMessage = formatLogMessage(message, 'debug', options)
-    console.debug(formattedMessage)
-    if (options?.context) console.debug(formatContext(options.context))
+  /**
+   * Log debug message
+   */
+  debug: (message: string, options?: LogOptions): void => {
+    log(LogLevel.DEBUG, message, undefined, options);
   },
-  
-  info: (message: string, options?: LogOptions) => {
-    if (!shouldLog('info')) return
-    const formattedMessage = formatLogMessage(message, 'info', options)
-    console.info(formattedMessage)
-    if (options?.context) console.info(formatContext(options.context))
-  },
-  
-  warn: (message: string, options?: LogOptions) => {
-    if (!shouldLog('warn')) return
-    const formattedMessage = formatLogMessage(message, 'warn', options)
-    console.warn(formattedMessage)
-    if (options?.context) console.warn(formatContext(options.context))
-  },
-  
-  error: (message: string, error?: Error, options?: LogOptions) => {
-    if (!shouldLog('error')) return
-    
-    const formattedMessage = formatLogMessage(message, 'error', options)
-    console.error(formattedMessage)
-    
-    if (error) {
-      console.error(error)
-    }
-    
-    if (options?.context) {
-      console.error(formatContext(options.context))
-    }
-    
-    // In the future, you could integrate with error reporting services here
-    // if (process.env.NODE_ENV === 'production') {
-    //   // Send to error reporting service
-    // }
-  },
-  
-  // Log database operations
-  db: (operation: string, table: string, details?: any) => {
-    // Only log DB operations based on config
-    if (!performanceConfig.features.enableDbLogging) return
-        
-    console.log(`DB ${operation.toUpperCase()} on ${table}`, details || '')
-  },
-  
-  // Log performance metrics
-  perf: (action: string, durationMs: number) => {
-    if (!performanceConfig.features.enablePerformanceMonitoring) return
-    
-    if (durationMs > performanceConfig.thresholds.verySlowOperation) {
-      // Log very slow operations as errors
-      logger.error(`CRITICAL PERFORMANCE: ${action} took ${durationMs.toFixed(1)}ms`)
-    } else if (durationMs > performanceConfig.thresholds.slowOperation) {
-      // Log slow operations as warnings
-      logger.warn(`SLOW OPERATION: ${action} took ${durationMs.toFixed(1)}ms`)
-    } else {
-      logger.debug(`PERF: ${action} took ${durationMs.toFixed(1)}ms`)
-    }
-  }
-}
 
-export default logger 
+  /**
+   * Log info message
+   */
+  info: (message: string, options?: LogOptions): void => {
+    log(LogLevel.INFO, message, undefined, options);
+  },
+
+  /**
+   * Log warning message
+   */
+  warn: (message: string, options?: LogOptions): void => {
+    log(LogLevel.WARN, message, undefined, options);
+  },
+
+  /**
+   * Log error message with optional Error object
+   */
+  error: (message: string, error?: Error, options?: LogOptions): void => {
+    log(LogLevel.ERROR, message, error, options);
+  },
+
+  /**
+   * Log database operation
+   */
+  db: (operation: string, table: string, details?: any): void => {
+    log(
+      LogLevel.DEBUG,
+      `DB: ${operation} ${table}`,
+      undefined,
+      { component: 'db', details }
+    );
+  },
+
+  /**
+   * Log performance metric
+   */
+  perf: (label: string, durationMs: number): void => {
+    const level = durationMs > 1000 ? LogLevel.WARN : LogLevel.DEBUG;
+    log(
+      level,
+      `PERF: ${label} took ${durationMs.toFixed(2)}ms`,
+      undefined,
+      { component: 'performance', duration: durationMs }
+    );
+  }
+};
+
+export default logger; 

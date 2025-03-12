@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Edit2, Save, X, AlertCircle, CheckCircle } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-client'
 
 export default function PersonalInfo() {
   const [isLoading, setIsLoading] = useState(true)

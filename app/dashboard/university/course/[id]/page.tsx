@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-client'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { ChevronLeft, Clock, BookOpen, Play, CheckCircle, Lock } from 'lucide-react'
 
 type Course = {
@@ -36,45 +37,56 @@ type Lesson = {
   modules_count?: number
 }
 
-export default function CourseDetail({ params }: { params: { id: string } }) {
+export default function CourseDetail() {
+  // Use useParams hook instead of accepting params as a prop
+  const params = useParams();
+  const courseId = Array.isArray(params?.id) ? params?.id[0] : params?.id;
+  
   const [course, setCourse] = useState<Course | null>(null)
   const [program, setProgram] = useState<Program | null>(null)
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [isInstructor, setIsInstructor] = useState(false)
   
   const supabase = createClient()
   
   useEffect(() => {
-    fetchCourse()
-  }, [])
+    // Only fetch data if courseId is available
+    if (courseId) {
+      fetchCourse()
+      checkUserRoles()
+    } else {
+      setError('Course ID is required')
+      setLoading(false)
+    }
+  }, [courseId])
   
   const fetchCourse = async () => {
     setLoading(true)
     setError(null)
     
     try {
-      // Fetch real course data from Supabase
       const { data, error } = await supabase
         .from('courses')
         .select('*')
-        .eq('id', params.id)
+        .eq('id', courseId)
         .single()
         
       if (error) throw error
       
       if (data) {
         setCourse(data)
-        // Fetch the program this course belongs to
         fetchProgram(data.program_id)
-        // Fetch lessons for this course
         fetchLessons(data.id)
       } else {
         setError('Course not found.')
       }
-    } catch (error: any) {
-      console.error('Error fetching course:', error)
-      setError('Failed to fetch course details. Please try again later.')
+    } catch (err: any) {
+      setLoading(false)
+      setError(err.message || 'Failed to fetch course')
+      console.error('Error fetching course:', err)
     }
   }
   
@@ -116,6 +128,29 @@ export default function CourseDetail({ params }: { params: { id: string } }) {
     }
   }
   
+  const checkUserRoles = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) return
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('is_admin, is_instructor')
+        .eq('id', user.id)
+        .single()
+        
+      if (error) throw error
+      
+      if (data) {
+        setIsAdmin(data.is_admin)
+        setIsInstructor(data.is_instructor)
+      }
+    } catch (error) {
+      console.error('Error checking user roles:', error)
+    }
+  }
+  
   if (loading) return (
     <div className="flex h-64 items-center justify-center">
       <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#AE9773] border-t-transparent"></div>
@@ -123,26 +158,28 @@ export default function CourseDetail({ params }: { params: { id: string } }) {
   )
   
   if (error) return (
-    <div className="mx-auto max-w-7xl p-4">
-      <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-800">
+    <div className="container mx-auto px-4 py-8">
+      <div className="bg-red-50 p-4 rounded-lg mb-4 text-red-800">
         {error}
       </div>
-      <Link href="/dashboard/university/training" className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]">
-        <ChevronLeft className="mr-1 h-4 w-4" /> Back to Training Portal
+      <Link href="/dashboard/university/programs" className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]">
+        <ChevronLeft className="mr-1 h-4 w-4" /> Back to Programs
       </Link>
     </div>
   )
   
-  if (!course) return (
-    <div className="mx-auto max-w-7xl p-4">
-      <div className="mb-6 rounded-lg bg-yellow-50 p-4 text-yellow-800">
-        Course not found.
+  if (!course) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-50 p-4 rounded-lg mb-4 text-red-800">
+          Course not found.
+        </div>
+        <Link href="/dashboard/university/programs" className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]">
+          <ChevronLeft className="mr-1 h-4 w-4" /> Back to Programs
+        </Link>
       </div>
-      <Link href="/dashboard/university/training" className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]">
-        <ChevronLeft className="mr-1 h-4 w-4" /> Back to Training Portal
-      </Link>
-    </div>
-  )
+    )
+  }
   
   return (
     <div className="flex min-h-screen flex-col">
@@ -154,8 +191,8 @@ export default function CourseDetail({ params }: { params: { id: string } }) {
               <ChevronLeft className="mr-1 h-4 w-4" /> Back to {program.title}
             </Link>
           ) : (
-            <Link href="/dashboard/university/training" className="inline-flex items-center text-gray-600 hover:text-gray-800">
-              <ChevronLeft className="mr-1 h-4 w-4" /> Back to Training Portal
+            <Link href="/dashboard/university/programs" className="inline-flex items-center text-gray-600 hover:text-gray-800">
+              <ChevronLeft className="mr-1 h-4 w-4" /> Back to Programs
             </Link>
           )}
         </div>
@@ -164,12 +201,45 @@ export default function CourseDetail({ params }: { params: { id: string } }) {
       {/* Course Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="mx-auto max-w-7xl px-4 py-8">
-          <h1 className="mb-4 text-3xl font-bold text-gray-900">{course.title}</h1>
-          <p className="mb-4 text-lg text-gray-700">{course.description}</p>
+          {/* Add course thumbnail if available */}
+          {course?.thumbnail_url ? (
+            <div className="mb-6 overflow-hidden rounded-lg">
+              <Image 
+                src={course.thumbnail_url}
+                alt={course.title}
+                width={800}
+                height={400}
+                className="w-full h-64 object-cover"
+                onError={(e) => {
+                  // Fix: Improved fallback if image fails to load
+                  const target = e.target as HTMLElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.classList.add('bg-gradient-to-r', 'from-[#AE9773]', 'to-[#8E795D]', 'h-64');
+                    // Add a book icon to the gradient background
+                    const iconDiv = document.createElement('div');
+                    iconDiv.className = 'flex items-center justify-center h-full';
+                    iconDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>';
+                    parent.appendChild(iconDiv);
+                  }
+                }}
+              />
+            </div>
+          ) : (
+            // Fix: Better fallback for missing thumbnails
+            <div className="mb-6 h-64 rounded-lg bg-gradient-to-r from-[#AE9773] to-[#8E795D] flex items-center justify-center">
+              {/* BookOpen icon */}
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+            </div>
+          )}
+          
+          <h1 className="mb-4 text-3xl font-bold text-gray-900">{course?.title}</h1>
+          <p className="mb-4 text-lg text-gray-700">{course?.description}</p>
           
           <div className="mt-4 flex items-center text-sm text-gray-500">
             <Clock className="mr-1 h-4 w-4" />
-            <span className="mr-4">Updated {new Date(course.updated_at).toLocaleDateString()}</span>
+            <span className="mr-4">Updated {course && new Date(course.updated_at).toLocaleDateString()}</span>
             
             {lessons.length > 0 && (
               <div className="flex items-center ml-4">
@@ -243,6 +313,33 @@ export default function CourseDetail({ params }: { params: { id: string } }) {
           </div>
         </div>
       </div>
+      
+      {/* Admin Actions */}
+      {isAdmin && (
+        <div className="mb-4">
+          <Link href="/dashboard/university/programs" className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]">
+            <ChevronLeft className="mr-1 h-4 w-4" /> Back to Programs
+          </Link>
+        </div>
+      )}
+      
+      {/* Instructor Actions */}
+      {isInstructor && (
+        <div className="mb-4">
+          <Link href="/dashboard/university/programs" className="inline-flex items-center text-[#AE9773] hover:text-[#8E795D]">
+            <ChevronLeft className="mr-1 h-4 w-4" /> Back to Programs
+          </Link>
+        </div>
+      )}
+      
+      {/* Standard User Actions */}
+      {!isAdmin && !isInstructor && (
+        <div className="mb-4">
+          <Link href="/dashboard/university/programs" className="inline-flex items-center text-gray-600 hover:text-gray-800">
+            <ChevronLeft className="mr-1 h-4 w-4" /> Back to Programs
+          </Link>
+        </div>
+      )}
     </div>
   )
 } 
