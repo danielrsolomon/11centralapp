@@ -1,0 +1,8 @@
+{
+  "require": "mocha",
+  "node-option": [
+    "experimental-modules",
+    "no-warnings"
+  ],
+  "timeout": 10000
+} 

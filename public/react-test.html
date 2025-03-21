@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      line-height: 1.6;
+    }
+    #app {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    button {
+      background-color: #AE9773;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .success { background-color: #d4edda; color: #155724; }
+    .error { background-color: #f8d7da; color: #721c24; }
+  </style>
+  <!-- Load React from CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="app"></div>
+  
+  <script type="text/babel">
+    // Simple React component to test rendering
+    function TestApp() {
+      const [count, setCount] = React.useState(0);
+      const [apiStatus, setApiStatus] = React.useState(null);
+      
+      const incrementCount = () => setCount(count + 1);
+      
+      const checkApi = async () => {
+        try {
+          setApiStatus({ state: 'loading', message: 'Checking API...' });
+          const response = await fetch('/api/health');
+          const data = await response.json();
+          setApiStatus({ 
+            state: 'success', 
+            message: 'API connected successfully',
+            data
+          });
+        } catch (error) {
+          setApiStatus({ 
+            state: 'error', 
+            message: `API connection failed: ${error.message}`
+          });
+        }
+      };
+      
+      return (
+        <div>
+          <h1>React Test Page</h1>
+          <p>This page confirms that React is loading and rendering correctly.</p>
+          
+          <div>
+            <h2>Component State Test</h2>
+            <p>Count: {count}</p>
+            <button onClick={incrementCount}>Increment</button>
+          </div>
+          
+          <div>
+            <h2>API Connection Test</h2>
+            <button onClick={checkApi}>Test API Connection</button>
+            
+            {apiStatus && (
+              <div className={`result ${apiStatus.state === 'success' ? 'success' : 'error'}`}>
+                <p>{apiStatus.message}</p>
+                {apiStatus.data && (
+                  <pre>{JSON.stringify(apiStatus.data, null, 2)}</pre>
+                )}
+              </div>
+            )}
+          </div>
+          
+          <div>
+            <h2>Environment Info</h2>
+            <p>React Version: {React.version}</p>
+            <p>Current URL: {window.location.href}</p>
+            <p>Time: {new Date().toLocaleString()}</p>
+          </div>
+        </div>
+      );
+    }
+    
+    // Mount the React app
+    const rootElement = document.getElementById('app');
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<TestApp />);
+    
+    // Log successful render
+    console.log('React successfully rendered at', new Date().toISOString());
+  </script>
+</body>
+</html> 

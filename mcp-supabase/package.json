@@ -1,0 +1,32 @@
+{
+  "name": "mcp-supabase",
+  "version": "1.0.0",
+  "description": "MCP Server for E11EVEN Central App",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node --esm src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "mcp",
+    "supabase",
+    "e11even"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "dotenv": "^16.4.7",
+    "mcp-framework": "^0.1.27",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "esbuild": "^0.25.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  }
+}

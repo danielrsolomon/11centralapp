@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    h1, h2 {
+      color: #333;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #AE9773;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #9A8563;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+      white-space: pre-wrap;
+    }
+    .success {
+      color: green;
+      font-weight: bold;
+    }
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>E11EVEN Login Test</h1>
+  
+  <div class="card">
+    <h2>Environment Info</h2>
+    <div id="env-info">Loading environment info...</div>
+  </div>
+  
+  <div class="card">
+    <h2>API Health Check</h2>
+    <button id="test-api">Check API Health</button>
+    <div id="api-result">Click to test API connection</div>
+  </div>
+  
+  <div class="card">
+    <h2>Login Test</h2>
+    <form id="login-form">
+      <div>
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" value="test@example.com" required>
+      </div>
+      <div>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" value="password123" required>
+      </div>
+      <button type="submit">Login</button>
+    </form>
+    <div id="login-result">Enter credentials and submit</div>
+  </div>
+  
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    
+    // Load environment variables from meta tags (these would be injected by the server)
+    const SUPABASE_URL = 'https://vzykvoyanfijphtvmgtu.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6eWt2b3lhbmZpanBodHZtZ3R1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEzMzIxMjIsImV4cCI6MjA1NjkwODEyMn0.vpyw6VZw26QXIkfLRwJVXeiKawx-foVn0W7E7T0YhjM';
+    const API_URL = 'http://localhost:3001';
+    
+    // Display environment info
+    document.getElementById('env-info').innerHTML = `
+      <div><strong>SUPABASE_URL:</strong> ${SUPABASE_URL}</div>
+      <div><strong>API_URL:</strong> ${API_URL}</div>
+      <div><strong>Browser:</strong> ${navigator.userAgent}</div>
+      <div><strong>Time:</strong> ${new Date().toISOString()}</div>
+    `;
+    
+    // Initialize Supabase client
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // Test API connection
+    document.getElementById('test-api').addEventListener('click', async () => {
+      const apiResult = document.getElementById('api-result');
+      apiResult.textContent = 'Testing API connection...';
+      
+      try {
+        const response = await fetch(`${API_URL}/api/health`);
+        const data = await response.json();
+        apiResult.innerHTML = `<span class="success">✓ API connected</span><br>Response: ${JSON.stringify(data, null, 2)}`;
+      } catch (error) {
+        apiResult.innerHTML = `<span class="error">✗ API connection failed</span><br>Error: ${error.message}`;
+      }
+    });
+    
+    // Handle login form submission
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const loginResult = document.getElementById('login-result');
+      loginResult.textContent = 'Attempting login...';
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        
+        if (error) {
+          loginResult.innerHTML = `<span class="error">✗ Login failed</span><br>Error: ${error.message}`;
+        } else {
+          loginResult.innerHTML = `
+            <span class="success">✓ Login successful</span><br>
+            <strong>User:</strong> ${data.user.email}<br>
+            <strong>ID:</strong> ${data.user.id}<br>
+            <strong>Session expires:</strong> ${new Date(data.session.expires_at * 1000).toLocaleString()}
+          `;
+        }
+      } catch (error) {
+        loginResult.innerHTML = `<span class="error">✗ Login error</span><br>Error: ${error.message}`;
+      }
+    });
+  </script>
+</body>
+</html> 

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "e11even-mcp": {
+      "command": "ts-node",
+      "args": ["--esm", "src/mcp/index.ts"],
+      "cwd": "/Users/danielsolomon/Desktop/App Development/11centralapp"
+    }
+  }
+} 

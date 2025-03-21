@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      line-height: 1.6;
+      color: #333;
+    }
+    h1 {
+      color: #005cc5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+    }
+    .status {
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .api-test {
+      margin-top: 30px;
+    }
+    button {
+      padding: 10px 15px;
+      background: #005cc5;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #004aa1;
+    }
+    #api-result {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background-color: #f5f5f5;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>E11EVEN Central Debug Page</h1>
+    
+    <div class="status success">
+      ✅ Static file server is working correctly
+    </div>
+    
+    <div>
+      <p>This page confirms that Vite is correctly serving static files from the public directory.</p>
+      <p>Current time: <span id="current-time"></span></p>
+      <p>Browser information: <span id="browser-info"></span></p>
+    </div>
+    
+    <div class="api-test">
+      <h2>API Connection Test</h2>
+      <button id="test-api">Test API Connection</button>
+      <div id="api-result">Click the button to test the API connection</div>
+    </div>
+  </div>
+
+  <script>
+    // Display current time
+    document.getElementById('current-time').textContent = new Date().toLocaleString();
+    
+    // Display browser information
+    document.getElementById('browser-info').textContent = navigator.userAgent;
+    
+    // API test
+    document.getElementById('test-api').addEventListener('click', async () => {
+      const resultElement = document.getElementById('api-result');
+      resultElement.textContent = 'Testing API connection...';
+      
+      try {
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        
+        resultElement.textContent = 'API Response:\n' + JSON.stringify(data, null, 2);
+        resultElement.style.backgroundColor = '#d4edda';
+      } catch (error) {
+        resultElement.textContent = 'Error connecting to API:\n' + error.message;
+        resultElement.style.backgroundColor = '#f8d7da';
+      }
+    });
+  </script>
+</body>
+</html> 

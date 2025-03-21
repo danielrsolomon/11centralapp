@@ -1,0 +1,27 @@
+{
+  "projectCommands": {
+    "onProjectOpen": [
+      {
+        "name": "Start MCP Server",
+        "command": "./start-mcp-supabase.sh",
+        "terminal": "integrated",
+        "autoClose": false,
+        "background": true
+      }
+    ],
+    "userDefined": [
+      {
+        "name": "Restart MCP Server",
+        "command": "pkill -f 'npx tsx src/mcp/index.ts' || true && ./start-mcp-supabase.sh",
+        "terminal": "integrated"
+      }
+    ]
+  },
+  "mcp": {
+    "enabled": true,
+    "server": {
+      "type": "stdio",
+      "command": "./start-mcp-supabase.sh"
+    }
+  }
+} 

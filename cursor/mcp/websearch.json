@@ -1,0 +1,47 @@
+{
+  "name": "web-search",
+  "description": "Search the web using Brave Search API to get up-to-date information. Perfect for finding current events, news, or any information not available in Claude's training data.",
+  "endpoint": "http://localhost:3100/search",
+  "method": "POST",
+  "parameters": {
+    "query": {
+      "type": "string",
+      "description": "The search query to look up on the web"
+    }
+  },
+  "response": {
+    "results": {
+      "type": "array",
+      "description": "List of search results from the web"
+    },
+    "query": {
+      "type": "string",
+      "description": "The original search query"
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "When the search was performed"
+    }
+  },
+  "examples": [
+    {
+      "name": "Latest news",
+      "parameters": {
+        "query": "latest AI news"
+      }
+    },
+    {
+      "name": "Technical documentation",
+      "parameters": {
+        "query": "React useEffect documentation"
+      }
+    },
+    {
+      "name": "Current events",
+      "parameters": {
+        "query": "current global technology trends"
+      }
+    }
+  ],
+  "version": "1.0.0"
+} 

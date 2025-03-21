@@ -1,0 +1,63 @@
+{
+  "services": {
+    "api": {
+      "status": "up",
+      "statusCode": 200,
+      "message": "Service is healthy",
+      "response": {
+        "success": true,
+        "data": {
+          "status": "ok",
+          "message": "API server is running",
+          "version": "1.0.0",
+          "timestamp": "2025-03-20T08:21:37.277Z"
+        }
+      }
+    },
+    "mcpSupabase": {
+      "status": "up",
+      "statusCode": 200,
+      "message": "Service is healthy",
+      "response": {
+        "jsonrpc": "2.0",
+        "error": {
+          "message": "Invalid method: undefined"
+        },
+        "id": 1
+      }
+    },
+    "mcpWebSearch": {
+      "status": "up",
+      "statusCode": 200,
+      "message": "Service is healthy",
+      "response": {
+        "status": "OK",
+        "service": "E11EVEN Web Search MCP",
+        "timestamp": "March 20, 2025 at 04:21 AM",
+        "api_key_configured": "Yes (Masked)",
+        "api_endpoint": "https://api.search.brave.com/res/v1/web/search"
+      }
+    },
+    "frontend": {
+      "status": "up",
+      "statusCode": 200,
+      "message": "Frontend is serving content",
+      "response": {
+        "status": "ok",
+        "message": "Frontend is serving HTML content"
+      }
+    }
+  },
+  "environment": {
+    "status": "success",
+    "output": "===============================================\nENVIRONMENT VARIABLE LOADING TEST\n===============================================\nCreated test environment file at /Users/danielsolomon/Desktop/App Development/11centralapp/.env.test\n\nTEST 1: Basic dotenv loading\nEnvironment file loaded successfully with dotenv\n\nTEST 2: Variable substitution with dotenv-expand\nEnvironment variables after expansion:\nTEST_BASE_URL = https://test-project.supabase.co\nTEST_SUPABASE_URL = https://test-project.supabase.co\nTEST_NESTED_VAR = original-value-extended\nVariable substitution worked correctly!\n\nTEST 3: Testing actual application environment files\nFound .env.local file\nApplication environment variables after expansion:\nVITE_SUPABASE_URL = Present\nSUPABASE_URL = Present\nSUPABASE_SERVICE_ROLE_KEY = Present (value hidden)\nSUPABASE_KEY = Present (value hidden)\nApplication environment variables loaded successfully!\n\n===============================================\nTEST SUMMARY\n===============================================\nBasic dotenv loading: PASSED\nVariable substitution: PASSED\nApplication env file: PASSED\n\n===============================================\nRECOMMENDATIONS\n===============================================\n✅ All tests passed! Your environment configuration is working correctly.\n\nRemoved test environment file\n"
+  },
+  "mcpVerification": {
+    "status": "success",
+    "output": "\u001b[36m\n🔍 E11EVEN Central App - MCP Server Verification\n\u001b[0m\n\u001b[34mChecking Supabase MCP server on port 8000...\u001b[0m\n\u001b[32m✅ Supabase MCP server is running (Status: 400)\u001b[0m\n\u001b[37m   Server info: {\n  \"error\": \"Invalid JSON in request body\"\n}\u001b[0m\n\n\u001b[34mChecking Web Search MCP server on port 8100...\u001b[0m\n\u001b[32m✅ Web Search MCP server is running (Status: 200)\u001b[0m\n\u001b[37m   Server info: {\n  \"status\": \"OK\",\n  \"service\": \"E11EVEN Web Search MCP\",\n  \"timestamp\": \"March 20, 2025 at 04:21 AM\",\n  \"api_key_configured\": \"Yes (Masked)\",\n  \"api_endpoint\": \"https://api.search.brave.com/res/v1/web/search\"\n}\u001b[0m\n\n\n\u001b[32m✅ All MCP servers are running correctly!\n\u001b[0m\n"
+  },
+  "authTests": {
+    "status": "success",
+    "output": "\n> mcp-server@1.0.0 test:auth:unit\n> mocha --experimental-modules tests/api/session-management.test.js\n\n\n\n  Session Management\n    Session Storage\n      ✔ should store a user session with valid data\n      ✔ should retrieve a stored session by user ID\n      ✔ should return null for non-existent sessions\n      ✔ should remove a session when requested\n    Session Expiration\n      ✔ should handle expired sessions correctly\n      ✔ should be able to refresh and extend session expiration\n    JWT Token Generation and Validation\n      ✔ should generate a valid JWT token with correct claims\n\n\n  7 passing (7ms)\n\n"
+  }
+}

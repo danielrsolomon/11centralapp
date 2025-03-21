@@ -1,0 +1,14 @@
+-------------------------------------
+Starting E11EVEN MCP-Supabase Server
+-------------------------------------
+✅ Loading environment variables from .env.local
+✅ Environment variables loaded:
+   SUPABASE_URL: https://vz...
+   SUPABASE_ANON_KEY: eyJhbGciOi...
+   SERVICE_ROLE_KEY: [MASKED FOR SECURITY]
+✅ Starting Supabase MCP server on port 8000
+   This provides full database access capabilities
+   Press Ctrl+C to stop the server
+-------------------------------------
+Loaded environment variables from .env.local
+Missing Supabase credentials. Please check your .env file.

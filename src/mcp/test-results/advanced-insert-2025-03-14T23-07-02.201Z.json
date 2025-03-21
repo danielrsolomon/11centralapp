@@ -1,0 +1,20 @@
+{
+  "insert": {
+    "jsonrpc": "2.0",
+    "error": {
+      "message": "Function undefined not found"
+    }
+  },
+  "validate": {
+    "jsonrpc": "2.0",
+    "error": {
+      "message": "Function undefined not found"
+    }
+  },
+  "constraints": {
+    "jsonrpc": "2.0",
+    "error": {
+      "message": "Function undefined not found"
+    }
+  }
+}

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Console Capture</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background-color: #1e1e1e;
+      color: #d4d4d4;
+    }
+    h1 {
+      color: #61dafb;
+    }
+    button {
+      background-color: #61dafb;
+      color: #1e1e1e;
+      border: none;
+      padding: 8px 16px;
+      margin: 10px 5px 10px 0;
+      cursor: pointer;
+      font-family: monospace;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: #4fa8c9;
+    }
+    #console-output {
+      background-color: #2d2d2d;
+      border: 1px solid #3e3e3e;
+      padding: 15px;
+      margin-top: 15px;
+      max-height: 70vh;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      border-radius: 4px;
+    }
+    .log {
+      margin: 5px 0;
+      padding: 3px 0;
+      border-bottom: 1px solid #3e3e3e;
+    }
+    .error { color: #ff6b6b; }
+    .warn { color: #ffd166; }
+    .info { color: #118ab2; }
+    .debug { color: #06d6a0; }
+    .iframe-container {
+      margin-top: 20px;
+      border: 1px solid #3e3e3e;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    iframe {
+      width: 100%;
+      height: 400px;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Console Capture for E11EVEN Central App</h1>
+  
+  <div>
+    <button id="load-app">Load App</button>
+    <button id="clear-console">Clear Console</button>
+    <button id="test-api">Test API Health</button>
+  </div>
+  
+  <div id="console-output">Waiting for logs...</div>
+  
+  <div class="iframe-container" id="iframe-container" style="display: none;">
+    <iframe id="app-frame" src="about:blank"></iframe>
+  </div>
+  
+  <script>
+    const consoleOutput = document.getElementById('console-output');
+    const appFrame = document.getElementById('app-frame');
+    const iframeContainer = document.getElementById('iframe-container');
+    
+    // Capture date and time for each log
+    function timestamp() {
+      const now = new Date();
+      return `[${now.toISOString()}]`;
+    }
+    
+    // Log to our console display
+    function logToConsole(type, ...args) {
+      const logEl = document.createElement('div');
+      logEl.className = `log ${type}`;
+      
+      let content = args.map(arg => {
+        if (typeof arg === 'object') {
+          try {
+            return JSON.stringify(arg, null, 2);
+          } catch (e) {
+            return String(arg);
+          }
+        }
+        return String(arg);
+      }).join(' ');
+      
+      logEl.textContent = `${timestamp()} [${type.toUpperCase()}] ${content}`;
+      consoleOutput.appendChild(logEl);
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+    
+    // Clear console
+    document.getElementById('clear-console').addEventListener('click', () => {
+      consoleOutput.innerHTML = 'Console cleared';
+    });
+    
+    // Load app in iframe
+    document.getElementById('load-app').addEventListener('click', () => {
+      logToConsole('info', 'Loading application...');
+      iframeContainer.style.display = 'block';
+      appFrame.src = 'http://localhost:5174/';
+      
+      // Attempt to capture console logs from iframe
+      if (appFrame.contentWindow) {
+        try {
+          // Override console methods in the iframe
+          const originalConsole = appFrame.contentWindow.console;
+          
+          appFrame.contentWindow.console.log = function(...args) {
+            originalConsole.log(...args);
+            logToConsole('log', ...args);
+          };
+          
+          appFrame.contentWindow.console.error = function(...args) {
+            originalConsole.error(...args);
+            logToConsole('error', ...args);
+          };
+          
+          appFrame.contentWindow.console.warn = function(...args) {
+            originalConsole.warn(...args);
+            logToConsole('warn', ...args);
+          };
+          
+          appFrame.contentWindow.console.info = function(...args) {
+            originalConsole.info(...args);
+            logToConsole('info', ...args);
+          };
+          
+          appFrame.contentWindow.console.debug = function(...args) {
+            originalConsole.debug(...args);
+            logToConsole('debug', ...args);
+          };
+          
+          logToConsole('info', 'Console capture initialized');
+        } catch (e) {
+          logToConsole('error', 'Could not override iframe console:', e.message);
+          logToConsole('info', 'Note: Cross-domain restrictions may prevent console capturing');
+        }
+      }
+    });
+    
+    // Test API health
+    document.getElementById('test-api').addEventListener('click', async () => {
+      logToConsole('info', 'Testing API health...');
+      
+      try {
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        logToConsole('info', 'API health response:', data);
+      } catch (error) {
+        logToConsole('error', 'API health error:', error.message);
+      }
+    });
+    
+    // Initialize with some logs
+    logToConsole('info', 'Console capture ready');
+    logToConsole('info', 'Click "Load App" to begin monitoring');
+  </script>
+</body>
+</html> 

@@ -1,0 +1,15 @@
+
+> mcp-server@1.0.0 api:start
+> node start-api-server.js
+
+Using environment from .env.local (PORT=3001)
+Using custom port: 3001
+Starting API server in development mode...
+Command: npx tsx -r dotenv/config src/api/server.ts
+Loaded environment variables from .env.local
+Loaded environment variables from .env.local
+Loaded environment variables from .env.local
+Starting E11EVEN Central API server on port 3001...
+E11EVEN Central API server running on port 3001
+GET /api/health
+GET /api/health

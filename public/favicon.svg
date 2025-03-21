@@ -1,0 +1,8 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Black background with rounded corners -->
+  <rect width="32" height="32" rx="4" fill="#000000"/>
+  
+  <!-- Gold "11" text, centered -->
+  <path d="M12 8H14V22H12V8Z" fill="#AE9773"/>
+  <path d="M18 8H20V22H18V8Z" fill="#AE9773"/>
+</svg> 

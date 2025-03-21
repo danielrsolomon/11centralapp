@@ -1,0 +1,122 @@
+---
+description: Apply these rules when creating the project
+globs:
+alwaysApply: true
+---
+## Project Overview
+
+*   **Type:** cursor_project_rules
+*   **Description:** E11EVEN Central App is a fully integrated, enterprise-grade platform that centralizes all key aspects of workforce management into one cohesive system. It includes a comprehensive University LMS, a robust messaging system, a dynamic scheduling module with AI integration, a detailed gratuity tracking system, and an all-inclusive administrative dashboard. The app aims to streamline employee training, communication, shift management, tip distribution, and overall operational efficiency with modern UI/UX, responsive design, and powerful third-party integrations.
+*   **Primary Goal:** Centralize workforce management by integrating training, communication, scheduling, and gratuity tracking into a single, scalable platform that meets both operational and compliance requirements.
+
+## Project Structure
+
+### Framework-Specific Routing
+
+*   **Directory Rules:**
+
+    *   **React Router 6:** Use the `src/routes/` directory and configure routes using `createBrowserRouter` for a modern React routing experience.
+    *   Example: `src/routes/home.tsx` for the home page and `src/routes/dashboard.tsx` for the main dashboard.
+
+### Core Directories
+
+*   **Versioned Structure:**
+
+    *   **documentation:** Contains project documentation including starter tech stack docs and developer guides.
+
+    *   **public:** Hosts static assets (images, icons, etc.) used in the application.
+
+    *   **src:** Contains all source code including assets, components, hooks, and libraries.
+
+        *   Example: `src/components` for reusable UI elements, `src/hooks` for custom hooks, and `src/lib` for utility functions.
+
+### Key Files
+
+*   **Stack-Versioned Patterns:**
+
+    *   `src/main.tsx`**:** Main entry point for the React application bootstrapped by Vite.
+    *   `src/App.tsx`**:** The core application component housing the global layout and router outlet.
+    *   `src/routes/*.tsx`**:** Files defining route components and views following React Router 6 patterns.
+
+## Tech Stack Rules
+
+*   **Version Enforcement:**
+
+    *   **Vite js:** Use the latest stable version to ensure fast bundling and HMR.
+    *   **Tailwind CSS:** Enforce usage of Tailwind CSS with a custom configuration that respects the defined gold palette and theming (light/dark modes).
+    *   **Typescript:** Maintain strict type checking across the project for improved code quality and developer experience.
+    *   **Supabase:** Use Supabase for authentication, database operations, and storage with proper version management specified in the project dependencies.
+    *   **Shadcn UI:** Integrate Shadcn UI components to maintain a consistent design system in line with modern UI/UX standards.
+    *   **React Hook Form & Zod:** Use these libraries for robust form handling and validation, ensuring data integrity and smooth user experience.
+    *   **OpenAI API & Micros Symphony API:** Adhere to best practices for external API integration, including secure key management and efficient error handling.
+
+## PRD Compliance
+
+*   **Non-Negotiable:**
+
+    *   "All tip income must be accurately reported by employees, and employers are required to calculate and withhold the appropriate federal taxes from these earnings." - This emphasizes IRS tip reporting and FLSA compliance within the gratuity tracking module.
+    *   Additional compliance details include support for GDPR in messaging, real-time schedule adjustments using AI, and secure data handling across all modules.
+
+## App Flow Integration
+
+*   **Stack-Aligned Flow:**
+
+    *   Example: "React Auth Flow → `src/routes/auth/Login.tsx` implements secure login using Supabase authentication, with role-based redirects for SuperAdmin, Admin, Director, SeniorManager, TrainingManager, Manager, Lead, and Staff."
+
+## Best Practices
+
+*   **Vite js**
+
+    *   Leverage Vite’s fast refresh and HMR capabilities for an optimal development experience.
+    *   Ensure environment variables are managed securely.
+    *   Optimize build configurations for production.
+
+*   **Tailwind CSS**
+
+    *   Maintain a consistent design system by adhering to the defined color palette and theming guidelines.
+    *   Utilize responsive utility classes for a mobile-first design approach.
+    *   Keep custom styles minimal by leveraging Tailwind’s utility-first framework.
+
+*   **Typescript**
+
+    *   Enforce strict typing and interface definitions for improved maintainability.
+    *   Use TS linting and formatting tools to maintain code quality.
+    *   Regularly update types for third-party libraries.
+
+*   **Supabase**
+
+    *   Secure API keys and credentials using environment variables.
+    *   Use Supabase’s realtime features for dynamic updates in the UI.
+    *   Implement proper error handling and logging during database operations.
+
+*   **Shadcn UI**
+
+    *   Use pre-built UI components for consistency and faster development.
+    *   Customize components as needed following the project’s branding guidelines.
+    *   Ensure accessibility and responsiveness are maintained in customizations.
+
+*   **React Hook Form & Zod**
+
+    *   Use React Hook Form for efficient form state management and reduced re-renders.
+    *   Validate forms using Zod schemas to ensure data integrity.
+    *   Provide clear error messages and validate user input at both client and server sides.
+
+*   **OpenAI API**
+
+    *   Manage API keys securely and ensure proper rate-limiting.
+    *   Optimize API calls by batching requests when possible.
+    *   Handle errors and provide fallback mechanisms if the API is unreachable.
+
+*   **Micros Symphony API**
+
+    *   Ensure secure integration for point-of-sale data and real-time updates.
+    *   Validate and sanitize all external data before processing.
+    *   Log API interactions for auditing and troubleshooting purposes.
+
+## Rules
+
+*   Derive folder/file patterns **directly** from tech stack documentation and starter kit conventions.
+*   For React projects using React Router 6, enforce a clear separation of routes in the `src/routes/` directory.
+*   Ensure that the routing and component structure adheres strictly to the designated patterns provided in the starter kit.
+*   Always maintain consistency with version-specific conventions: never mix patterns (for example, avoid mixing Next.js app routing with a React Router setup).
+*   Follow a modular architecture to facilitate easier scalability, maintenance, and future integration of additional features such as native or hybrid mobile apps.

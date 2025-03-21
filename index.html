@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="E11EVEN Central - Workforce Management Platform" />
+    <title>E11EVEN Central</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Critical CSS to ensure something displays even if main CSS fails to load */
+      html, body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background-color: #f5f5f5;
+      }
+      
+      .loading-indicator {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+      }
+      
+      .loading-indicator h1 {
+        font-size: 1.5rem;
+        color: #333;
+        margin-bottom: 1rem;
+      }
+      
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid rgba(0, 0, 0, 0.1);
+        border-top-color: #AE9773;
+        border-radius: 50%;
+        animation: spin 1s ease-in-out infinite;
+        margin: 0 auto;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+    <script>
+      // Inline script to show loading indicator
+      window.startTime = new Date();
+      window.addEventListener('DOMContentLoaded', function() {
+        // Add a loading indicator that will be replaced by React
+        var loadingEl = document.createElement('div');
+        loadingEl.className = 'loading-indicator';
+        loadingEl.innerHTML = 
+          '<h1>E11EVEN Central</h1>' +
+          '<div class="loading-spinner"></div>' +
+          '<p>Loading application...</p>';
+        
+        // Insert loading indicator before root div
+        var rootEl = document.getElementById('root');
+        if (rootEl) {
+          rootEl.parentNode.insertBefore(loadingEl, rootEl);
+        } else {
+          document.body.appendChild(loadingEl);
+        }
+      });
+      
+      // Signal that React has rendered
+      window.reactRendered = function() {
+        // Remove loading indicator
+        var loadingEl = document.querySelector('.loading-indicator');
+        if (loadingEl) {
+          loadingEl.style.display = 'none';
+        }
+      };
+      
+      // Check for common issues
+      if (!window.Promise) {
+        console.error('Promise API not available - browser too old');
+      }
+      if (!window.fetch) {
+        console.error('Fetch API not available - browser too old');
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
